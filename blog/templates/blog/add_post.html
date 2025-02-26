@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Add New Post{% endblock %}
+{{ form.media }}  <!-- This loads CKEditor scripts -->
+<link rel="stylesheet" href="{% static 'css/style.css' %}">  <!-- Your custom styles -->
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center">Create a New Post</h2>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags %}alert-{{ message.tags }}{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow p-4">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label for="id_title" class="form-label"><strong>Title:</strong></label>
+                <input type="text" class="form-control" name="title" id="id_title" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="id_category" class="form-label">Select Category</label>
+                <select name="category" id="id_category" class="form-control">
+                    <option value="">-- Choose Category --</option>
+                    {% for category in form.category.field.queryset %}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>            
+
+            <div class="mb-3">
+                <label for="id_new_category" class="form-label"><strong>Or Add New Category:</strong></label>
+                <input type="text" class="form-control" name="new_category" id="id_new_category" placeholder="Enter new category">
+            </div>
+
+            <div class="mb-3">
+                <label for="id_content" class="form-label"><strong>Content:</strong></label>
+                {{ form.content }}
+            </div>
+
+            <div class="mb-3">
+                <label for="id_image" class="form-label"><strong>Upload Image:</strong></label>
+                <input type="file" class="form-control" name="image" id="id_image">
+            </div>
+
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" name="is_published" id="id_is_published">
+                <label class="form-check-label" for="id_is_published">Publish Immediately</label>
+            </div>
+
+            <div class="mb-3 text-center">
+                <button type="submit" class="btn btn-primary">Publish Post</button>
+                <a href="{% url 'home' %}" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="https://cdn.ckeditor.com/4.16.0/standard/ckeditor.js"></script>
+<script>
+    CKEDITOR.replace('id_content');
+</script>
+
+{% endblock %}

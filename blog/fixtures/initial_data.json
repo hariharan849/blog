@@ -1,0 +1,16 @@
+[
+    {
+        "model": "blog.category",
+        "pk": 1,
+        "fields": {
+            "name": "Deep Learning"
+        }
+    },
+    {
+        "model": "blog.category",
+        "pk": 2,
+        "fields": {
+            "name": "Machine Learning"
+        }
+    }
+]
