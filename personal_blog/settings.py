@@ -174,7 +174,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Ensure STATICFILES_DIRS exists for additional static files
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'blog/static'),  # Your custom static files
+    os.path.join(BASE_DIR, 'static'),  # Your custom static files
 ]
 
 MEDIA_URL = '/media/'
