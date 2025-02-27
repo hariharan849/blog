@@ -138,6 +138,9 @@ def login_view(request):
 
     return render(request, 'blog/login.html')
 
+def about_view(request):
+    return render(request, 'blog/aboutme.html')
+
 # Register View
 def register_view(request):
     if request.user.is_authenticated:
