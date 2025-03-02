@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block title %}About Me | Rajan's Blog{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-4 text-center">
+            <!-- Update the image path to Rajan's profile picture -->
+            <img src="/static/images/rajan_profile.jpg" class="img-fluid rounded-circle" alt="Rajan Profile Picture" style="max-width: 200px;">
+        </div>
+        <div class="col-md-8">
+            <h2>About Me</h2>
+            <p>Hi, I'm Rajan, a Data Scientist and Machine Learning Enthusiast. With a strong background in statistical modeling and computer vision, I've been developing AI solutions that transform complex data into meaningful insights.</p>
+            <h4>My Expertise</h4>
+            <ul>
+                <li>Data Science & Analytics</li>
+                <li>Machine Learning & Deep Learning</li>
+                <li>Python, R, and TensorFlow</li>
+                <li>Computer Vision and Natural Language Processing</li>
+            </ul>
+            <h4>Why This Blog?</h4>
+            <p>This blog is my platform for sharing the latest trends in AI, deep learning techniques, and best practices in data-driven decision making. Here, I break down complex concepts into actionable insights for fellow enthusiasts and professionals.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
