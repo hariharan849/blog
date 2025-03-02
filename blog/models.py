@@ -4,6 +4,18 @@ from ckeditor.fields import RichTextField
 from django.utils.text import slugify
 from taggit.managers import TaggableManager
 
+class Post(models.Model):
+    title = models.CharField(max_length=200)
+    slug = models.SlugField(unique=True)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    image = models.ImageField(upload_to='post_images/', blank=True, null=True)
+    # This field can hold the name of the blog (e.g., "Hariharan's Blog" or "Rajan's Blog")
+    author = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.title
+
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(unique=True, blank=True, null=True)
