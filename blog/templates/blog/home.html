@@ -85,6 +85,7 @@
       background: #203a43;
       color: white;
       padding: 15px 0;
+      text-align: center;
     }
     footer a {
       color: #ffcc00;
@@ -105,11 +106,11 @@
           <form id="authorForm" method="GET" action="{% url 'home' %}" class="d-inline">
             <div class="select-container">
               <select name="author" id="authorSelect" onchange="document.getElementById('authorForm').submit();">
-                <option value="Hariharan's Blog" {% if selected_author == "Hariharan's Blog" or not selected_author %}selected{% endif %}>
-                  Hariharan's Blog
+                <option value="Hariharan's" {% if selected_author == "Hariharan's" or not selected_author %}selected{% endif %}>
+                  Hariharan's
                 </option>
-                <option value="Rajan's Blog" {% if selected_author == "Rajan's Blog" %}selected{% endif %}>
-                  Rajan's Blog
+                <option value="Rajan's" {% if selected_author == "Rajan's" %}selected{% endif %}>
+                  Rajan's
                 </option>
               </select>
               <span class="select-arrow">▼</span>
@@ -132,7 +133,7 @@
               <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
               <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Register</a></li>
             {% endif %}
-            {% if selected_author == "Rajan's Blog" %}
+            {% if selected_author == "Rajan's" %}
               <li class="nav-item"><a class="nav-link" href="{% url 'about_rajan' %}">About me</a></li>
             {% else %}
               <li class="nav-item"><a class="nav-link" href="{% url 'about_hariharan' %}">About me</a></li>
@@ -212,12 +213,19 @@
       </div>
     </div>
 
-    <!-- Footer -->
+    <!-- Footer with Dynamic Links -->
     <footer class="footer text-center mt-auto">
-      <p>&copy; 2025 Hariharan Manoharan | Connect with me:</p>
-      <a href="https://www.linkedin.com/in/hariharan-manoharan-6b059958/" target="_blank">LinkedIn</a>
-      <a href="https://github.com/hariharan849" target="_blank">GitHub</a>
-      <a href="https://www.kaggle.com/hariharan849" target="_blank">Kaggle</a>
+      {% if selected_author == "Rajan's" %}
+        <p>&copy; 2025 Rajan Singh | Connect with me:</p>
+        <a href="https://www.linkedin.com/in/rajan-singh-parmar-3698891b1/" target="_blank">LinkedIn</a>
+        <a href="https://github.com/rajanpratap" target="_blank">GitHub</a>
+        <a href="https://www.kaggle.com/rajansinghparmar" target="_blank">Kaggle</a>
+      {% else %}
+        <p>&copy; 2025 Hariharan Manoharan | Connect with me:</p>
+        <a href="https://www.linkedin.com/in/hariharan-manoharan-6b059958/" target="_blank">LinkedIn</a>
+        <a href="https://github.com/hariharan849" target="_blank">GitHub</a>
+        <a href="https://www.kaggle.com/hariharan849" target="_blank">Kaggle</a>
+      {% endif %}
     </footer>
   </div>
 
