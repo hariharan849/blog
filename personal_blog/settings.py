@@ -23,9 +23,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = "django-insecure-7ei@=w^-!==ay&cd$g-h0h&$fnus%#@mamzt4h-elh75r7snj6"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ["your-username.pythonanywhere.com", "127.0.0.1"]
+ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOST", "").split(",")
 
 # Enforce HTTPS only in production
 if DEBUG:
