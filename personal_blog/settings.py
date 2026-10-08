@@ -12,36 +12,59 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 import os
 from pathlib import Path
 
+import dj_database_url
+
+try:  # Load a local .env file when python-dotenv is installed.
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover
+    load_dotenv = None
+
+
+def env_bool(name, default=False):
+    return os.environ.get(name, str(default)).strip().lower() in {"1", "true", "yes", "on"}
+
+
+def env_list(name, default=""):
+    return [item.strip() for item in os.environ.get(name, default).split(",") if item.strip()]
+
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+if load_dotenv:
+    load_dotenv(BASE_DIR / ".env")
 
-# Quick-start development settings - unsuitable for production
+
+# Core settings are read from the environment so the same code runs locally and in production.
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-7ei@=w^-!==ay&cd$g-h0h&$fnus%#@mamzt4h-elh75r7snj6"
+DEBUG = env_bool("DEBUG", False)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY")
+if not SECRET_KEY:
+    if not DEBUG:
+        from django.core.exceptions import ImproperlyConfigured
 
-ALLOWED_HOSTS = os.environ.get("DJANGO_ALLOWED_HOST", "").split(",")
+        raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DEBUG is off.")
+    SECRET_KEY = "django-insecure-local-development-only"
+
+ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOST", "localhost,127.0.0.1" if DEBUG else "")
+CSRF_TRUSTED_ORIGINS = env_list("DJANGO_CSRF_TRUSTED_ORIGINS")
 
 # Enforce HTTPS only in production
-if DEBUG:
-    SECURE_SSL_REDIRECT = False
-else:
-    SECURE_SSL_REDIRECT = True  # Redirect HTTP to HTTPS
+if not DEBUG:
+    SECURE_SSL_REDIRECT = env_bool("DJANGO_SECURE_SSL_REDIRECT", True)
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_HSTS_SECONDS = 31536000  # 1 year
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
 
     # Secure Cookies
+    SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
 
     # Other Security Settings
     X_FRAME_OPTIONS = "DENY"
-    SECURE_BROWSER_XSS_FILTER = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
 
 # Application definition
@@ -59,6 +82,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sitemaps",
     'ckeditor',
     'ckeditor_uploader',  # If you use file uploads
     "blog",
@@ -121,16 +145,18 @@ ACCOUNT_LOGOUT_REDIRECT_URL = '/'
 
 # Email Verification
 ACCOUNT_EMAIL_VERIFICATION = "none"
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]
 
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+# SQLite by default; set DATABASE_URL (e.g. postgres://...) to switch. PostgreSQL unlocks
+# ranked full-text search and is the path to pgvector for large-scale semantic search.
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+    "default": dj_database_url.config(
+        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        conn_max_age=int(os.environ.get("DATABASE_CONN_MAX_AGE", "600")),
+    )
 }
 
 
@@ -185,28 +211,43 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# # # ✅ Disable Debug in Production
-# # DEBUG = os.getenv("DEBUG", "False") == "True"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
+        if DEBUG
+        else "whitenoise.storage.CompressedStaticFilesStorage"
+    },
+}
 
-# # # ✅ Set Allowed Hosts
-# # ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",")
 
-# # # ✅ Secure Secret Key
-# # SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", get_random_secret_key())
+# AI search
+# Posts are converted to plain text, split into overlapping chunks and embedded so they can be
+# searched by keyword, by meaning (semantic) or both (hybrid), and served to LLMs / RAG pipelines.
+# Every component is a dotted path, so a hosted embedding model or a dedicated vector database
+# can be plugged in without touching the views or models.
+AI_SEARCH = {
+    # Re-index a post whenever it is saved. Disable to index from a worker / `manage.py reindex_posts`.
+    "AUTO_INDEX": env_bool("AI_SEARCH_AUTO_INDEX", True),
+    # "blog.search.embeddings.HashingEmbedder" needs no network or API key (good for dev/tests);
+    # "blog.search.embeddings.VoyageEmbedder" uses Voyage AI (VOYAGE_API_KEY);
+    # "blog.search.embeddings.OpenAICompatibleEmbedder" works with any /v1/embeddings endpoint.
+    "EMBEDDER": os.environ.get("AI_SEARCH_EMBEDDER", "blog.search.embeddings.HashingEmbedder"),
+    "EMBEDDING_MODEL": os.environ.get("AI_SEARCH_EMBEDDING_MODEL", ""),
+    "EMBEDDING_DIMENSIONS": int(os.environ.get("AI_SEARCH_EMBEDDING_DIMENSIONS", "256")),
+    "EMBEDDING_API_KEY": os.environ.get("AI_SEARCH_EMBEDDING_API_KEY", ""),
+    "EMBEDDING_API_BASE": os.environ.get("AI_SEARCH_EMBEDDING_API_BASE", ""),
+    "VECTOR_STORE": os.environ.get("AI_SEARCH_VECTOR_STORE", "blog.search.vector_store.DatabaseVectorStore"),
+    # Chunk size and overlap are measured in words.
+    "CHUNK_WORDS": int(os.environ.get("AI_SEARCH_CHUNK_WORDS", "200")),
+    "CHUNK_OVERLAP_WORDS": int(os.environ.get("AI_SEARCH_CHUNK_OVERLAP_WORDS", "40")),
+    "DEFAULT_MODE": os.environ.get("AI_SEARCH_DEFAULT_MODE", "hybrid"),
+    "MAX_RESULTS": 50,
+}
 
-# # # ✅ Enforce HTTPS
-# # SECURE_SSL_REDIRECT = True  # Redirect HTTP to HTTPS
-# # SECURE_HSTS_SECONDS = 31536000  # 1 year
-# # SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-# # SECURE_HSTS_PRELOAD = True
-
-# # # ✅ Secure Cookies
-# # SESSION_COOKIE_SECURE = True
-# # CSRF_COOKIE_SECURE = True
-
-# # # ✅ Other Security Settings
-# # X_FRAME_OPTIONS = "DENY"
-# # SECURE_BROWSER_XSS_FILTER = True
-# # SECURE_CONTENT_TYPE_NOSNIFF = True
-
-# # STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"blog": {"handlers": ["console"], "level": os.environ.get("BLOG_LOG_LEVEL", "INFO")}},
+}

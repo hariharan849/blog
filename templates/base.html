@@ -4,7 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hariharan's Blog</title>
+    <title>{% block title %}Hariharan's Blog{% endblock %}</title>
+    <link rel="alternate" type="text/markdown" title="llms.txt" href="{% url 'llms_txt' %}">
+    {% block head %}{% endblock %}
     
     <!-- Bootstrap & Custom Styles -->
     <link rel="stylesheet" href="{% static 'css/style.css' %}">

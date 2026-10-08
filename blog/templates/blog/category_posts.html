@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ category.name }} Posts{% endblock %}
+{% block title %}{{ heading }} Posts{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h2 class="text-center">{{ category.name }} Posts</h2>
+    <h2 class="text-center">{{ heading }} Posts</h2>
     
     {% if posts %}
         <div class="row">
@@ -16,7 +16,7 @@
                         {% endif %}
                         <div class="card-body">
                             <h5 class="card-title">{{ post.title }}</h5>
-                            <p class="card-text">{{ post.content|truncatewords:20 }}</p>
+                            <p class="card-text">{{ post.summary|truncatewords:20 }}</p>
                             <a href="{% url 'post_detail' post.slug %}" class="btn btn-primary">Read More</a>
                         </div>
                         <div class="card-footer text-muted text-center">
@@ -27,7 +27,7 @@
             {% endfor %}
         </div>
     {% else %}
-        <p class="text-center text-muted">No posts found in this category.</p>
+        <p class="text-center text-muted">No posts found.</p>
     {% endif %}
 </div>
 {% endblock %}

@@ -1,9 +1,7 @@
 from django import forms
-from .models import BlogPost, Comment
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
 
-from .models import BlogPost, Category
+from .models import BlogPost, Category, Comment
+
 
 class PostForm(forms.ModelForm):
     new_category = forms.CharField(
@@ -14,16 +12,17 @@ class PostForm(forms.ModelForm):
 
     class Meta:
         model = BlogPost
-        fields = ['title', 'content', 'image', 'category', 'tags', 'is_published']
+        fields = ['title', 'blog', 'excerpt', 'content', 'image', 'category', 'tags', 'is_published']
         widgets = {
             'content': forms.Textarea(attrs={'class': 'form-control'}),
+            'excerpt': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
     def clean(self):
         cleaned_data = super().clean()
         new_category = cleaned_data.get("new_category")
         if new_category:
-            category, created = Category.objects.get_or_create(name=new_category)
+            category, created = Category.objects.get_or_create(name=new_category.strip())
             cleaned_data["category"] = category
         return cleaned_data
 
@@ -31,4 +30,4 @@ class PostForm(forms.ModelForm):
 class CommentForm(forms.ModelForm):
     class Meta:
         model = Comment
-        fields = ['content']
+        fields = ['name', 'email', 'content']
