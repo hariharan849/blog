@@ -104,10 +104,51 @@ pgvector (or Qdrant, etc.) and point `AI_SEARCH_VECTOR_STORE` at it; nothing els
 
 Post pages also include `BlogPosting` JSON-LD structured data.
 
+## Daily Bytes: personal learning digest
+
+A private, staff-only page at `/bytes/`. Every day it reads the feeds of the writers and
+publications you follow (Substack, Medium, Towards AI, any blog with RSS/Atom). Each new article
+gets a summary, its most interesting points, tags, a difficulty level and a relevance score
+against your interests. The best few are then turned into a short daily lesson.
+
+Only public feeds are read. Paywalled and member-only content is never bypassed, nothing is
+republished, and every item links to the original.
+
+1. **Add sources** at `/bytes/sources/`: paste profile/publication URLs, one per line, or upload
+   an OPML export from a feed reader. Supported formats:
+   - `https://name.substack.com` or a Substack custom domain
+   - `https://medium.com/@writer`, `https://medium.com/<publication>`, `https://medium.com/tag/<tag>`
+   - `https://pub.towardsai.net`
+   - any site with an RSS/Atom feed
+
+   You can also import from the command line: `python manage.py import_sources follows.opml`.
+2. **Set your interests** on the same page (e.g. "LLM agents" with priority 5, "RAG" with 3).
+   They drive the relevance score.
+3. **Run the pipeline** once a day:
+
+   ```bash
+   python manage.py run_daily_bytes            # fetch -> enrich -> digest (-> email)
+   python manage.py run_daily_bytes --no-email --limit 3   # quick test
+   ```
+
+Set `ANTHROPIC_API_KEY` to have Claude extract the insights and write the daily lesson.
+Without it a keyword-based fallback is used. With the default model (`claude-opus-5-5`, low effort),
+about 30 articles a day costs roughly $0.50 to $1 per day. Set `DAILY_BYTES_MODEL=claude-haiku-5-5`
+to bring that down to about 2 cents a day. All settings are listed in [`.env.example`](.env.example).
+
+**Scheduling.** The command needs a persistent database (Postgres via `DATABASE_URL`). The SQLite
+file in this repo is reset on every deploy. Pick one:
+- **GitHub Actions:** `.github/workflows/daily-bytes.yml` runs at 06:15 UTC. Add the
+  `DATABASE_URL`, `DJANGO_SECRET_KEY` and `ANTHROPIC_API_KEY` repository secrets.
+- **Render Cron Job:** command `python manage.py run_daily_bytes`, same environment as the web service.
+- **crontab:** `15 6 * * * cd /path/to/blog && venv/bin/python manage.py run_daily_bytes`
+
+To get the digest by email, set `DAILY_BYTES_EMAIL_TO` and the `EMAIL_*` settings.
+
 ## Testing
 
 ```bash
-python manage.py test blog
+python manage.py test blog learning
 ```
 
 ## Usage

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head><title>My subscriptions</title></head>
+  <body>
+    <outline text="AI">
+      <outline type="rss" text="Agentic Engineering" xmlUrl="https://agentic.substack.com/feed" htmlUrl="https://agentic.substack.com"/>
+      <outline type="rss" text="Towards AI" xmlUrl="https://pub.towardsai.net/feed" htmlUrl="https://pub.towardsai.net"/>
+    </outline>
+  </body>
+</opml>

@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block title %}Daily Bytes · sources{% endblock %}
+
+{% block content %}
+{% include 'learning/_nav.html' with section='sources' %}
+<div class="row">
+  <div class="col-lg-7">
+    <h4>Writers &amp; publications you follow</h4>
+    <form method="post" enctype="multipart/form-data" class="card card-body mb-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="import">
+      {{ import_form.non_field_errors }}
+      <label class="form-label">Add by URL</label>
+      {{ import_form.urls }}
+      <div class="form-text mb-2">{{ import_form.urls.help_text }} Substack, Medium (@user, publication or tag), Towards AI and most blogs work.</div>
+      <label class="form-label">or import OPML</label>
+      {{ import_form.opml }}
+      <button class="btn btn-primary mt-3" type="submit">Add sources</button>
+    </form>
+
+    <table class="table table-sm align-middle">
+      <thead><tr><th>Source</th><th>Kind</th><th>Last fetch</th><th></th></tr></thead>
+      <tbody>
+        {% for source in sources %}
+          <tr class="{% if not source.is_active %}text-muted{% endif %}">
+            <td>
+              <a href="{{ source.site_url|default:source.feed_url }}" target="_blank" rel="noopener">{{ source.name }}</a>
+              {% if source.last_error %}<div class="text-danger small">{{ source.last_error|truncatechars:160 }}</div>{% endif %}
+            </td>
+            <td>{{ source.get_kind_display }}</td>
+            <td class="small">{{ source.last_fetched_at|date:"M d H:i"|default:"never" }}</td>
+            <td>
+              <form method="post">{% csrf_token %}
+                <input type="hidden" name="action" value="toggle_source"><input type="hidden" name="pk" value="{{ source.pk }}">
+                <button class="btn btn-sm btn-outline-secondary" type="submit">{% if source.is_active %}Pause{% else %}Resume{% endif %}</button>
+              </form>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="text-muted">No sources yet.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="col-lg-5">
+    <h4>Your learning interests</h4>
+    <p class="text-muted small">Used to score how relevant each article is (1 = mild, 5 = top priority).</p>
+    <form method="post" class="row g-2 mb-3">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="interest">
+      <div class="col-7">{{ interest_form.name }}</div>
+      <div class="col-3">{{ interest_form.weight }}</div>
+      <div class="col-2"><button class="btn btn-primary w-100" type="submit">Add</button></div>
+      {% if interest_form.errors %}<div class="text-danger small">{{ interest_form.errors }}</div>{% endif %}
+    </form>
+    <ul class="list-group">
+      {% for interest in interests %}
+        <li class="list-group-item d-flex justify-content-between align-items-center">
+          <span>{{ interest.name }} <span class="badge bg-secondary">{{ interest.weight }}</span></span>
+          <form method="post">{% csrf_token %}
+            <input type="hidden" name="action" value="delete_interest"><input type="hidden" name="pk" value="{{ interest.pk }}">
+            <button class="btn btn-sm btn-link text-danger" type="submit">Remove</button>
+          </form>
+        </li>
+      {% empty %}
+        <li class="list-group-item text-muted">No interests yet; every article scores as neutral.</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

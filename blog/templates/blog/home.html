@@ -128,6 +128,9 @@
               {% if user.is_superuser %}
                 <li class="nav-item"><a class="nav-link" href="{% url 'add_post' %}">New Post</a></li>
               {% endif %}
+              {% if user.is_staff %}
+                <li class="nav-item"><a class="nav-link" href="{% url 'learning:digest' %}">Daily Bytes</a></li>
+              {% endif %}
               <li class="nav-item"><a class="nav-link" href="{% url 'logout' %}">Logout</a></li>
             {% else %}
               <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>

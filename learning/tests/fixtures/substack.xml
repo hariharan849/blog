@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+  <title>Agentic Engineering</title>
+  <link>https://agentic.substack.com</link>
+  <item>
+    <title>Building reliable LLM agents</title>
+    <link>https://agentic.substack.com/p/reliable-agents?utm_source=rss&amp;utm_medium=feed</link>
+    <guid>https://agentic.substack.com/p/reliable-agents</guid>
+    <dc:creator>Ada Writer</dc:creator>
+    <pubDate>{recent}</pubDate>
+    <category>LLM agents</category>
+    <content:encoded><![CDATA[<p>LLM agents fail in surprising ways. Retrieval augmented generation helps ground them.</p>
+<h2>Evaluate every tool call</h2><p>Log each tool call and score it offline. Agents with evals ship faster.</p>
+<h2>Keep context small</h2><p>Smaller context windows reduce cost. RAG retrieval keeps prompts focused for LLM agents.</p>]]></content:encoded>
+  </item>
+  <item>
+    <title>An old post</title>
+    <link>https://agentic.substack.com/p/old-post</link>
+    <pubDate>{old}</pubDate>
+    <content:encoded><![CDATA[<p>Old news about LLM agents.</p>]]></content:encoded>
+  </item>
+</channel>
+</rss>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+  <title>Towards AI - Medium</title>
+  <link>https://pub.towardsai.net</link>
+  <item>
+    <title>Fine-tuning small models</title>
+    <link>https://pub.towardsai.net/fine-tuning-small-models-abc123?source=rss----98111c9905da---4</link>
+    <guid>https://medium.com/p/abc123</guid>
+    <dc:creator>Bo Author</dc:creator>
+    <pubDate>{recent}</pubDate>
+    <category>fine-tuning</category>
+    <content:encoded><![CDATA[<p>Fine-tuning a small model on 2k examples beat prompting a large one. LoRA keeps it cheap.</p>]]></content:encoded>
+  </item>
+  <item>
+    <title>Cooking with cast iron</title>
+    <link>https://pub.towardsai.net/cast-iron-def456?source=rss----98111c9905da---4</link>
+    <pubDate>{recent}</pubDate>
+    <content:encoded><![CDATA[<p>Season the pan well. Heat it slowly.</p>]]></content:encoded>
+  </item>
+  <item>
+    <title>Building reliable LLM agents (cross-post)</title>
+    <link>https://agentic.substack.com/p/reliable-agents?utm_campaign=x</link>
+    <pubDate>{recent}</pubDate>
+    <content:encoded><![CDATA[<p>Duplicate of the Substack post.</p>]]></content:encoded>
+  </item>
+</channel>
+</rss>

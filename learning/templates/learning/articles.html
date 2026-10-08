@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Daily Bytes · articles{% endblock %}
+
+{% block content %}
+{% include 'learning/_nav.html' with section='articles' %}
+<form method="get" class="row g-2 mb-3">
+  <div class="col-md-4"><input type="search" name="q" value="{{ filters.q }}" class="form-control" placeholder="Search titles and summaries"></div>
+  <div class="col-md-3">
+    <select name="source" class="form-select">
+      <option value="">All sources</option>
+      {% for source in sources %}<option value="{{ source.pk }}" {% if filters.source == source.pk|stringformat:'s' %}selected{% endif %}>{{ source.name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div class="col-md-3 d-flex align-items-center gap-3">
+    <label><input type="checkbox" name="starred" value="1" {% if filters.starred %}checked{% endif %}> Starred</label>
+    <label><input type="checkbox" name="unread" value="1" {% if filters.unread %}checked{% endif %}> Unread</label>
+  </div>
+  {% if filters.tag %}<input type="hidden" name="tag" value="{{ filters.tag }}">{% endif %}
+  <div class="col-md-2"><button class="btn btn-primary w-100" type="submit">Filter</button></div>
+</form>
+{% if filters.tag %}<p>Tag: <strong>#{{ filters.tag }}</strong> · <a href="{% url 'learning:articles' %}">clear</a></p>{% endif %}
+
+{% for article in articles %}
+  {% include 'learning/_article_card.html' %}
+{% empty %}
+  <p class="text-muted">No articles match.</p>
+{% endfor %}
+{% include 'learning/_pagination.html' with page=articles %}
+{% endblock %}

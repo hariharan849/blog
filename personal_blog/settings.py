@@ -86,6 +86,7 @@ INSTALLED_APPS = [
     'ckeditor',
     'ckeditor_uploader',  # If you use file uploads
     "blog",
+    "learning",
     'taggit',
 ]
 
@@ -245,9 +246,41 @@ AI_SEARCH = {
     "MAX_RESULTS": 50,
 }
 
+# Daily Bytes: a private daily learning digest built from RSS feeds you follow (Substack, Medium,
+# Towards AI, ...). Articles are summarised and tagged with Claude when ANTHROPIC_API_KEY is set,
+# otherwise with a keyword-based fallback. Run it daily with `manage.py run_daily_bytes`.
+DAILY_BYTES = {
+    "MODEL": os.environ.get("DAILY_BYTES_MODEL", "claude-opus-5-5"),
+    "EFFORT": os.environ.get("DAILY_BYTES_EFFORT", "low"),
+    "MAX_ENRICH_PER_RUN": int(os.environ.get("DAILY_BYTES_MAX_ENRICH_PER_RUN", "40")),
+    "MAX_ARTICLE_AGE_DAYS": int(os.environ.get("DAILY_BYTES_MAX_ARTICLE_AGE_DAYS", "3")),
+    "DIGEST_SIZE": int(os.environ.get("DAILY_BYTES_DIGEST_SIZE", "8")),
+    "MAX_PER_SOURCE": int(os.environ.get("DAILY_BYTES_MAX_PER_SOURCE", "2")),
+    "MIN_RELEVANCE": int(os.environ.get("DAILY_BYTES_MIN_RELEVANCE", "50")),
+    "FETCH_FULL_TEXT": env_bool("DAILY_BYTES_FETCH_FULL_TEXT", False),
+    "USER_AGENT": os.environ.get("DAILY_BYTES_USER_AGENT", "DailyBytesBot/1.0 (+personal reading digest)"),
+    "EMAIL_TO": env_list("DAILY_BYTES_EMAIL_TO"),
+}
+
+# Email (optional, used to send the daily digest). Prints to the console when EMAIL_HOST is unset.
+EMAIL_BACKEND = (
+    "django.core.mail.backends.smtp.EmailBackend"
+    if os.environ.get("EMAIL_HOST")
+    else "django.core.mail.backends.console.EmailBackend"
+)
+EMAIL_HOST = os.environ.get("EMAIL_HOST", "")
+EMAIL_PORT = int(os.environ.get("EMAIL_PORT", "587"))
+EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD", "")
+EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+DEFAULT_FROM_EMAIL = os.environ.get("DEFAULT_FROM_EMAIL", "webmaster@localhost")
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {"console": {"class": "logging.StreamHandler"}},
-    "loggers": {"blog": {"handlers": ["console"], "level": os.environ.get("BLOG_LOG_LEVEL", "INFO")}},
+    "loggers": {
+        "blog": {"handlers": ["console"], "level": os.environ.get("BLOG_LOG_LEVEL", "INFO")},
+        "learning": {"handlers": ["console"], "level": os.environ.get("BLOG_LOG_LEVEL", "INFO")},
+    },
 }

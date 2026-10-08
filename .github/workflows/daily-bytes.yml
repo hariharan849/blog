@@ -1,0 +1,46 @@
+# Builds the Daily Bytes digest every morning against the production database.
+# Requires repository secrets: DATABASE_URL (a persistent database, e.g. Postgres), DJANGO_SECRET_KEY,
+# and optionally ANTHROPIC_API_KEY plus the EMAIL_* / DAILY_BYTES_EMAIL_TO settings.
+name: Daily Bytes
+
+on:
+  schedule:
+    - cron: "15 6 * * *"  # 06:15 UTC
+  workflow_dispatch:
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      DAILY_BYTES_EMAIL_TO: ${{ secrets.DAILY_BYTES_EMAIL_TO }}
+      EMAIL_HOST: ${{ secrets.EMAIL_HOST }}
+      EMAIL_HOST_USER: ${{ secrets.EMAIL_HOST_USER }}
+      EMAIL_HOST_PASSWORD: ${{ secrets.EMAIL_HOST_PASSWORD }}
+      DEFAULT_FROM_EMAIL: ${{ secrets.DEFAULT_FROM_EMAIL }}
+    steps:
+      - name: Check configuration
+        id: config
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "DATABASE_URL secret is not set; skipping (the digest needs a persistent database)."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.ready == 'true'
+      - uses: actions/setup-python@v5
+        if: steps.config.outputs.ready == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        if: steps.config.outputs.ready == 'true'
+        run: pip install -r requirements.txt
+      - name: Build today's digest
+        if: steps.config.outputs.ready == 'true'
+        run: python manage.py run_daily_bytes

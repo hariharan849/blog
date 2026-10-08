@@ -47,6 +47,7 @@ def robots_txt(request):
         "Disallow: /admin/",
         "Disallow: /add/",
         "Disallow: /accounts/",
+        "Disallow: /bytes/",
         "Allow: /",
         "",
         f"Sitemap: {request.build_absolute_uri(reverse('sitemap'))}",
