@@ -1,9 +1,0 @@
-<ul class="nav nav-pills mb-4">
-  <li class="nav-item"><a class="nav-link {% if section == 'digest' %}active{% endif %}" href="{% url 'learning:digest' %}">Today</a></li>
-  <li class="nav-item"><a class="nav-link {% if section == 'articles' %}active{% endif %}" href="{% url 'learning:articles' %}">All articles</a></li>
-  <li class="nav-item"><a class="nav-link {% if section == 'archive' %}active{% endif %}" href="{% url 'learning:archive' %}">Archive</a></li>
-  <li class="nav-item"><a class="nav-link {% if section == 'sources' %}active{% endif %}" href="{% url 'learning:sources' %}">Sources &amp; interests</a></li>
-</ul>
-{% for message in messages %}
-  <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %}">{{ message }}</div>
-{% endfor %}

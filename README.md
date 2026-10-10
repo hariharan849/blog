@@ -1,69 +1,104 @@
-# Personal Blog
+# PyChanter Blog
 
-This is a personal blog project built with Django. It allows users to create, edit, and delete blog posts. Users can also comment on posts and view posts by category.
+Personal blogs of Hariharan Manoharan and Rajan Singh, with AI-ready search and a private
+"Daily Bytes" learning digest.
 
-## Features
+## Architecture
 
-- User authentication (signup, login, logout)
-- Create, edit, and delete blog posts
-- Comment on posts
-- View posts by category
-- Responsive design
-- AI-ready search: keyword, semantic and hybrid search over chunked, embedded posts
-- JSON API, `sitemap.xml`, `robots.txt`, `llms.txt` and schema.org markup for search engines and AI agents
+```
+backend/    Django + Django REST Framework: JSON API, admin, AI search, Daily Bytes pipeline
+frontend/   Next.js (React, TypeScript): every page, server-side rendered for SEO
+Dockerfile  One container: Next.js is the public server and proxies /api, /admin, /media,
+            /sitemap.xml, /robots.txt and /llms.txt to Django on 127.0.0.1:8000
+```
 
-## Installation
+The browser only ever talks to one origin, so authentication uses Django's session cookie and
+CSRF token, with no CORS setup. Public pages (home, posts, categories, tags, search, about) are
+rendered on the server with metadata and `BlogPosting` JSON-LD. Login, comments, the post editor
+and Daily Bytes call the API from the browser.
 
-1. Clone the repository:
-    ```bash
-    git clone https://github.com/yourusername/personal_blog.git
-    ```
-2. Navigate to the project directory:
-    ```bash
-    cd personal_blog
-    ```
-3. Create a virtual environment:
-    ```bash
-    python -m venv venv
-    ```
-4. Activate the virtual environment:
-    - On Windows:
-        ```bash
-        venv\Scripts\activate
-        ```
-    - On macOS/Linux:
-        ```bash
-        source venv/bin/activate
-        ```
-5. Install the required packages:
-    ```bash
-    pip install -r requirements.txt
-    ```
-6. Apply migrations:
-    ```bash
-    python manage.py migrate
-    ```
-7. Create a superuser:
-    ```bash
-    python manage.py createsuperuser
-    ```
-8. Run the development server:
-    ```bash
-    python manage.py runserver
-    ```
+## Local development
+
+You need Python 3.12+ and Node 22+.
+
+**Backend** (http://127.0.0.1:8000):
+
+```bash
+cd backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env            # DEBUG=True, etc.
+python manage.py migrate
+python manage.py seed_demo --password choose-a-password   # optional demo users and posts
+python manage.py runserver
+```
+
+**Frontend** (http://localhost:3000, in a second terminal):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open http://localhost:3000. Next.js forwards `/api`, `/admin` and `/media` to Django, so the
+admin is at http://localhost:3000/admin/.
+
+**Or with Docker Compose** (Postgres + both dev servers with hot reload):
+
+```bash
+docker compose up
+```
 
 ## Configuration
 
-Settings come from environment variables (a local `.env` file is loaded automatically). See
-[`.env.example`](.env.example) for the full list. The important ones:
+Backend settings come from environment variables; `backend/.env` is loaded automatically. See
+[`backend/.env.example`](backend/.env.example) for the full list. The important ones:
 
 | Variable | Purpose |
 | --- | --- |
 | `DEBUG` | `True` for local development |
 | `DJANGO_SECRET_KEY` | Required when `DEBUG` is off |
-| `DJANGO_ALLOWED_HOST` | Comma-separated host names |
+| `DJANGO_ALLOWED_HOST` | Comma-separated public host names |
+| `SITE_URL` | Public URL, e.g. `https://blog.example.com` (canonical links, CSRF trusted origin) |
 | `DATABASE_URL` | e.g. `postgres://user:pass@host/db`; SQLite is used when unset |
 | `AI_SEARCH_EMBEDDER` | Embedding provider (see below) |
+| `ANTHROPIC_API_KEY` | Optional, for Daily Bytes |
+
+The frontend reads `BACKEND_URL` (default `http://127.0.0.1:8000`) and optionally `SITE_URL`;
+see [`frontend/.env.example`](frontend/.env.example).
+
+## Deployment
+
+Build and run the production image locally:
+
+```bash
+docker build -t pychanter .
+docker run -p 10000:10000 -e DJANGO_SECRET_KEY=... -e DJANGO_ALLOWED_HOST=localhost \
+  -e SITE_URL=http://localhost:10000 pychanter
+```
+
+On start the container runs migrations, then starts gunicorn (internal) and the Next.js server on
+`$PORT`.
+
+**Render:** create the service from [`render.yaml`](render.yaml) (Blueprint), or switch the
+existing web service to the Docker runtime. Set `SITE_URL` and `DJANGO_ALLOWED_HOST` to your
+domain. The Blueprint also creates a Postgres database for `DATABASE_URL`. Uploaded images are
+stored on the container's disk, which is lost on redeploy, so attach a persistent disk at
+`/app/backend/media` (or move media to object storage) if you upload images.
+
+## API
+
+All endpoints live under `/api/v1/` and return JSON. Errors look like
+`{"error": "...", "fields": {...}}`.
+
+| Endpoint | Access |
+| --- | --- |
+| `GET search/`, `GET posts/`, `GET posts/<slug>/`, `GET posts/<slug>/comments/`, `GET categories/`, `GET tags/<slug>/` | Public |
+| `POST posts/<slug>/comments/` | Logged-in users |
+| `POST posts/` (multipart, with image) | Superusers |
+| `GET auth/csrf/`, `GET auth/me/`, `POST auth/login/`, `POST auth/logout/`, `POST auth/register/` | Public |
+| `bytes/digests/`, `bytes/articles/`, `bytes/sources/`, `bytes/interests/` | Staff |
 
 ## AI search
 
@@ -85,10 +120,10 @@ Embedding providers are set with `AI_SEARCH_EMBEDDER`:
 After changing provider or model, rebuild the index:
 
 ```bash
-python manage.py reindex_posts --force
+cd backend && python manage.py reindex_posts --force
 ```
 
-Unchanged posts are skipped automatically, so `build.sh` runs `reindex_posts` on every deploy.
+Unchanged posts are skipped automatically, so it is cheap to run `reindex_posts` after every deploy.
 Vectors live in the `PostChunk` table. For a large corpus, implement `save()`/`query()` on top of
 pgvector (or Qdrant, etc.) and point `AI_SEARCH_VECTOR_STORE` at it; nothing else changes.
 
@@ -98,7 +133,7 @@ pgvector (or Qdrant, etc.) and point `AI_SEARCH_VECTOR_STORE` at it; nothing els
 | --- | --- |
 | `/api/v1/search/?q=...&mode=hybrid&limit=10` | Search; optional `blog`, `category`, `tag` filters |
 | `/api/v1/posts/` | Paginated list of published posts |
-| `/api/v1/posts/<slug>/` | One post with HTML and plain-text content |
+| `/api/v1/posts/<slug>/` | One post with HTML and plain-text content, related posts and JSON-LD |
 | `/sitemap.xml`, `/robots.txt` | Crawling |
 | `/llms.txt` | Markdown site map for LLMs ([llmstxt.org](https://llmstxt.org)) |
 
@@ -121,12 +156,13 @@ republished, and every item links to the original.
    - `https://pub.towardsai.net`
    - any site with an RSS/Atom feed
 
-   You can also import from the command line: `python manage.py import_sources follows.opml`.
+   You can also import from the command line: `cd backend && python manage.py import_sources follows.opml`.
 2. **Set your interests** on the same page (e.g. "LLM agents" with priority 5, "RAG" with 3).
    They drive the relevance score.
 3. **Run the pipeline** once a day:
 
    ```bash
+   cd backend
    python manage.py run_daily_bytes            # fetch -> enrich -> digest (-> email)
    python manage.py run_daily_bytes --no-email --limit 3   # quick test
    ```
@@ -134,40 +170,28 @@ republished, and every item links to the original.
 Set `ANTHROPIC_API_KEY` to have Claude extract the insights and write the daily lesson.
 Without it a keyword-based fallback is used. With the default model (`claude-opus-5-5`, low effort),
 about 30 articles a day costs roughly $0.50 to $1 per day. Set `DAILY_BYTES_MODEL=claude-haiku-5-5`
-to bring that down to about 2 cents a day. All settings are listed in [`.env.example`](.env.example).
+to bring that down to about 2 cents a day. All settings are listed in [`backend/.env.example`](backend/.env.example).
 
 **Scheduling.** The command needs a persistent database (Postgres via `DATABASE_URL`). The SQLite
 file in this repo is reset on every deploy. Pick one:
 - **GitHub Actions:** `.github/workflows/daily-bytes.yml` runs at 06:15 UTC. Add the
   `DATABASE_URL`, `DJANGO_SECRET_KEY` and `ANTHROPIC_API_KEY` repository secrets.
-- **Render Cron Job:** command `python manage.py run_daily_bytes`, same environment as the web service.
-- **crontab:** `15 6 * * * cd /path/to/blog && venv/bin/python manage.py run_daily_bytes`
+- **Render Cron Job:** command `cd backend && python manage.py run_daily_bytes`, same environment as the web service.
+- **crontab:** `15 6 * * * cd /path/to/blog/backend && ../venv/bin/python manage.py run_daily_bytes`
 
 To get the digest by email, set `DAILY_BYTES_EMAIL_TO` and the `EMAIL_*` settings.
 
 ## Testing
 
 ```bash
-python manage.py test blog learning
+cd backend && python manage.py test blog learning
+cd frontend && npm run lint && npm run typecheck && npm test && npm run build
+cd frontend && npm run test:e2e    # Playwright, against a running site (see e2e/README.md)
 ```
-
-## Usage
-
-- Access the blog at `http://127.0.0.1:8000/`
-- Log in with your superuser account to create, edit, or delete posts
-- Register a new account to comment on posts
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and create a pull request with your changes.
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Contact
-
-For any questions or suggestions, please contact [your email address].
+This project is licensed under the MIT License.
 
 ## Screenshot
 

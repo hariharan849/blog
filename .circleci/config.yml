@@ -1,32 +1,39 @@
-# This config was automatically generated from your source code
-# Stacks detected: deps:python:.,file:manage.py:.
 version: 2.1
-orbs:
-  python: circleci/python@2
+
 jobs:
-  test-python:
-    # Install dependencies and run tests
+  backend:
     docker:
-      - image: cimg/python:3.11.1
+      - image: cimg/python:3.12
     steps:
       - checkout
-      - python/install-packages
       - run:
-          name: Run tests
-          command: python manage.py test
-  deploy:
-    # This is an example deploy job, not actually used by the workflow
+          name: Install backend dependencies
+          command: pip install -r backend/requirements.txt
+      - run:
+          name: Run backend tests
+          working_directory: backend
+          command: DJANGO_SECRET_KEY=ci python manage.py test
+      - run:
+          name: Check for missing migrations
+          working_directory: backend
+          command: DJANGO_SECRET_KEY=ci python manage.py makemigrations --check --dry-run
+
+  frontend:
     docker:
-      - image: cimg/base:stable
+      - image: cimg/node:22.12
     steps:
-      # Replace this with steps to deploy to users
+      - checkout
       - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          name: Install frontend dependencies
+          working_directory: frontend
+          command: npm ci
+      - run:
+          name: Lint, typecheck, test and build
+          working_directory: frontend
+          command: npm run lint && npm run typecheck && npm test && npm run build
+
 workflows:
   build-and-test:
     jobs:
-      - test-python
-    # - deploy:
-    #     requires:
-    #       - test-python
+      - backend
+      - frontend

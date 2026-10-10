@@ -1,0 +1,25 @@
+# Render Blueprint: one Docker web service (Next.js + Django) and a Postgres database.
+services:
+  - type: web
+    name: pychanter
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /about/hariharan/
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: pychanter-db
+          property: connectionString
+      - key: SITE_URL            # e.g. https://pychanter.onrender.com
+        sync: false
+      - key: DJANGO_ALLOWED_HOST # e.g. pychanter.onrender.com
+        sync: false
+      - key: ANTHROPIC_API_KEY   # optional, for Daily Bytes
+        sync: false
+
+databases:
+  - name: pychanter-db
+    databaseName: blog
+    user: blog

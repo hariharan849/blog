@@ -1,0 +1,45 @@
+# Local development: Postgres + Django (runserver) + Next.js (dev server with hot reload).
+# Open http://localhost:3000 — Next.js proxies /api, /admin and /media to Django.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: blog
+      POSTGRES_USER: blog
+      POSTGRES_PASSWORD: blog
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    image: python:3.12-slim
+    working_dir: /app/backend
+    command: sh -c "pip install -q -r requirements.txt && python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    environment:
+      DEBUG: "True"
+      DATABASE_URL: postgres://blog:blog@db:5432/blog
+      DJANGO_ALLOWED_HOST: localhost,backend
+    volumes:
+      - ./backend:/app/backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  frontend:
+    image: node:22-slim
+    working_dir: /app/frontend
+    command: sh -c "npm ci && npm run dev -- --hostname 0.0.0.0"
+    environment:
+      BACKEND_URL: http://backend:8000
+      NEXT_TELEMETRY_DISABLED: "1"
+    volumes:
+      - ./frontend:/app/frontend
+      - frontend_node_modules:/app/frontend/node_modules
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  frontend_node_modules:
