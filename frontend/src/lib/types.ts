@@ -33,6 +33,7 @@ export interface PostSummary {
   image: string | null;
   published_at: string;
   updated_at: string;
+  reading_minutes: number;
 }
 
 export interface PostDetail extends PostSummary {

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import { ApiError, apiRequest } from "@/lib/client-api";
+import { alertError, buttonPrimary, card, cn, input, label } from "@/lib/ui";
 
 type Mode = "login" | "register";
 
@@ -48,45 +49,48 @@ export default function AuthForm({ mode, next }: { mode: Mode; next: string }) {
     }
   }
 
+  const isLogin = mode === "login";
   return (
-    <div className="row justify-content-center">
-      <div className="col-md-6 col-lg-5">
-        <div className="card shadow-sm">
-          <div className="card-body p-4">
-            <h1 className="h3 text-center mb-4">{mode === "login" ? "Login" : "Create an account"}</h1>
-            {error && <div className="alert alert-danger">{error}</div>}
-            <form onSubmit={submit} noValidate>
-              {FIELDS[mode].map((field) => (
-                <div className="mb-3" key={field.name}>
-                  <label htmlFor={field.name} className="form-label">{field.label}</label>
-                  <input
-                    id={field.name}
-                    name={field.name}
-                    type={field.type}
-                    autoComplete={field.autoComplete}
-                    className={`form-control${fieldErrors[field.name] ? " is-invalid" : ""}`}
-                    value={values[field.name] ?? ""}
-                    onChange={(event) => setValues({ ...values, [field.name]: event.target.value })}
-                    required
-                  />
-                  {fieldErrors[field.name]?.map((message) => (
-                    <div className="invalid-feedback" key={message}>{message}</div>
-                  ))}
-                </div>
-              ))}
-              <button type="submit" className="btn btn-primary w-100" disabled={busy}>
-                {busy ? "Please wait…" : mode === "login" ? "Login" : "Register"}
-              </button>
-            </form>
-            <p className="text-center mt-3 mb-0">
-              {mode === "login" ? (
-                <>Don&apos;t have an account? <Link href={`/register/?next=${encodeURIComponent(next)}`}>Register</Link></>
-              ) : (
-                <>Already have an account? <Link href={`/login/?next=${encodeURIComponent(next)}`}>Login</Link></>
-              )}
-            </p>
-          </div>
+    <div className="flex min-h-[calc(100vh-12rem)] items-center justify-center px-4 py-16">
+      <div className="w-full max-w-sm">
+        <div className="text-center">
+          <h1 className="font-serif text-3xl font-semibold tracking-tight">{isLogin ? "Welcome back" : "Create your account"}</h1>
+          <p className="mt-2 text-sm text-zinc-500">
+            {isLogin ? "Sign in to comment and follow the discussion." : "Join to comment on posts."}
+          </p>
         </div>
+        <form onSubmit={submit} noValidate className={cn(card, "mt-8 space-y-4 p-6")}>
+          {error && <div className={alertError} role="alert">{error}</div>}
+          {FIELDS[mode].map((field) => (
+            <div key={field.name}>
+              <label htmlFor={field.name} className={label}>{field.label}</label>
+              <input
+                id={field.name}
+                name={field.name}
+                type={field.type}
+                autoComplete={field.autoComplete}
+                aria-invalid={!!fieldErrors[field.name]}
+                className={cn(input, fieldErrors[field.name] && "border-red-400 focus:border-red-500 focus:ring-red-500/15")}
+                value={values[field.name] ?? ""}
+                onChange={(event) => setValues({ ...values, [field.name]: event.target.value })}
+                required
+              />
+              {fieldErrors[field.name]?.map((message) => (
+                <p className="mt-1.5 text-xs text-red-600 dark:text-red-400" key={message}>{message}</p>
+              ))}
+            </div>
+          ))}
+          <button type="submit" className={cn(buttonPrimary, "w-full py-2.5")} disabled={busy}>
+            {busy ? "Please wait…" : isLogin ? "Login" : "Register"}
+          </button>
+        </form>
+        <p className="mt-6 text-center text-sm text-zinc-500">
+          {isLogin ? (
+            <>New here? <Link className="font-medium text-indigo-600 dark:text-indigo-400" href={`/register/?next=${encodeURIComponent(next)}`}>Register</Link></>
+          ) : (
+            <>Already have an account? <Link className="font-medium text-indigo-600 dark:text-indigo-400" href={`/login/?next=${encodeURIComponent(next)}`}>Login</Link></>
+          )}
+        </p>
       </div>
     </div>
   );

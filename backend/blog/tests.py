@@ -87,6 +87,10 @@ class ModelTests(BlogTestCase):
         self.assertEqual(first.slug, "same-title")
         self.assertEqual(second.slug, "same-title-1")
 
+    def test_summary_uses_first_paragraph(self):
+        post = self.make_post("Summaries", "<h2>Intro</h2><p>This opening paragraph explains what the post is about.</p><p>More text follows here later on.</p>")
+        self.assertEqual(post.summary, "This opening paragraph explains what the post is about.")
+
     def test_published_at_set_on_publish(self):
         draft = self.make_post("Draft", "<p>x</p>", published=False)
         self.assertIsNone(draft.published_at)
@@ -151,6 +155,7 @@ class SearchTests(SearchFixtures):
     def test_semantic_search_returns_passages(self):
         results = search("sequence models for time series", mode="semantic")
         self.assertEqual(results[0].post, self.rnn)
+        self.assertFalse(results[0].snippet.startswith("Recurrent Networks"))  # no chunk context prefix
         self.assertIn("Sequence models", results[0].passages[0].text)
 
     def test_hybrid_merges_both(self):
@@ -216,6 +221,12 @@ class BlogApiTests(SearchFixtures):
         self.assertEqual(data["tag_slugs"], [{"name": "vision", "slug": "vision"}])
         self.assertIn(self.rnn.slug, [p["slug"] for p in data["related"]])
         self.assertEqual(data["url"], f"http://testserver/post/{self.cnn.slug}/")
+        self.assertEqual(data["reading_minutes"], 1)
+
+    def test_reading_minutes_scales_with_length(self):
+        long_post = self.make_post("Long read", "<p>" + "word " * 2300 + "</p>")
+        data = self.client.get(reverse("api_post_detail", args=[long_post.slug])).json()
+        self.assertEqual(data["reading_minutes"], 10)
 
     @override_settings(SITE_URL="https://blog.example.com")
     def test_site_url_is_used_for_canonical_links(self):

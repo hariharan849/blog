@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import PostList from "@/components/PostList";
+import PageHeader from "@/components/PageHeader";
+import { PostGrid } from "@/components/PostCard";
 import { apiGet, apiGetOrNull } from "@/lib/server-api";
 import type { Page, PostSummary } from "@/lib/types";
+import { container } from "@/lib/ui";
 
 type Props = PageProps<"/tag/[slug]">;
 
@@ -16,11 +18,13 @@ export default async function TagPage({ params }: Props) {
   const { slug } = await params;
   const tag = await apiGetOrNull<{ name: string; slug: string }>(`/api/v1/tags/${encodeURIComponent(slug)}/`);
   if (!tag) notFound();
-  const posts = await apiGet<Page<PostSummary>>(`/api/v1/posts/?tag=${encodeURIComponent(slug)}`);
+  const posts = await apiGet<Page<PostSummary>>(`/api/v1/posts/?tag=${encodeURIComponent(slug)}&page_size=100`);
   return (
     <>
-      <h1 className="h3 mb-4">#{tag.name}</h1>
-      <PostList posts={posts.results} empty="No posts with this tag." />
+      <PageHeader eyebrow="Tag" title={`#${tag.name}`} description={`${posts.count} ${posts.count === 1 ? "post" : "posts"}`} />
+      <div className={container}>
+        <PostGrid posts={posts.results} empty="No posts with this tag." />
+      </div>
     </>
   );
 }

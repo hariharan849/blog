@@ -20,12 +20,13 @@ class PostSerializer(serializers.ModelSerializer):
     tags = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
     published_at = serializers.SerializerMethodField()
+    reading_minutes = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogPost
         fields = [
             "title", "slug", "url", "blog", "author", "category", "category_slug", "tags", "summary",
-            "image", "published_at", "updated_at",
+            "image", "published_at", "updated_at", "reading_minutes",
         ]
 
     def get_url(self, post):
@@ -48,6 +49,9 @@ class PostSerializer(serializers.ModelSerializer):
 
     def get_published_at(self, post):
         return (post.published_at or post.created_at).isoformat()
+
+    def get_reading_minutes(self, post):
+        return max(1, round(len(post.search_text.split()) / 230))  # ~230 words per minute
 
 
 class PostDetailSerializer(PostSerializer):

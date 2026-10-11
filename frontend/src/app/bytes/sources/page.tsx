@@ -11,13 +11,9 @@ export default async function SourcesPage() {
     apiGet<Interest[]>("/api/v1/bytes/interests/", { withCookies: true }),
   ]);
   return (
-    <div className="row">
-      <div className="col-lg-7">
-        <SourcesManager sources={sources} />
-      </div>
-      <div className="col-lg-5">
-        <InterestsManager interests={interests} />
-      </div>
+    <div className="grid gap-10 lg:grid-cols-[1.4fr_1fr]">
+      <SourcesManager sources={sources} />
+      <InterestsManager interests={interests} />
     </div>
   );
 }

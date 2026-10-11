@@ -97,7 +97,9 @@ class BlogPost(models.Model):
     def summary(self):
         if self.excerpt:
             return self.excerpt
-        words = self.search_text.split()
+        # Use the first real paragraph (skips headings and short code lines), not the whole text.
+        paragraphs = [line for line in self.search_text.splitlines() if len(line.split()) >= 8]
+        words = (paragraphs[0] if paragraphs else self.search_text).split()
         return " ".join(words[:50]) + ("…" if len(words) > 50 else "")
 
     def __str__(self):

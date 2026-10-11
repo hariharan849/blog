@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { coverGradient } from "@/lib/cover";
 import { BLOGS } from "@/lib/format";
+import { buttonPrimary, buttonSecondary, card, chip, cn, container } from "@/lib/ui";
 
 const PROFILES = {
   hariharan: {
@@ -35,25 +38,37 @@ export default async function AboutPage({ params }: Props) {
   if (!(person in PROFILES)) notFound();
   const profile = PROFILES[person as Person];
   const blog = BLOGS[person as Person];
+  const other = (Object.keys(PROFILES) as Person[]).find((key) => key !== person)!;
   return (
-    <div className="row py-4">
-      <div className="col-md-4 text-center mb-4">
-        <div className="avatar rounded-circle text-white d-inline-flex align-items-center justify-content-center">
-          {blog.author[0]}
+    <div className={cn(container, "max-w-4xl py-16 sm:py-24")}>
+      <div className="grid gap-10 md:grid-cols-[200px_1fr]">
+        <div>
+          <div className="grid aspect-square w-40 place-items-center rounded-3xl font-serif text-6xl font-semibold text-white shadow-lg md:w-full" style={{ backgroundImage: coverGradient(person) }}>
+            {blog.author[0]}
+          </div>
+          <div className="mt-6 flex flex-wrap gap-2 md:flex-col md:items-start">
+            {Object.entries(blog.links).map(([label, href]) => (
+              <a key={label} href={href} className={chip} target="_blank" rel="noopener noreferrer">{label} ↗</a>
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="col-md-8">
-        <h1 className="h2">About Me</h1>
-        <p>{profile.intro}</p>
-        <h2 className="h4">My Expertise</h2>
-        <ul>{profile.expertise.map((item) => <li key={item}>{item}</li>)}</ul>
-        <h2 className="h4">Why This Blog?</h2>
-        <p>{profile.why}</p>
-        <p>
-          {Object.entries(blog.links).map(([label, href]) => (
-            <a key={label} href={href} className="me-3" target="_blank" rel="noopener noreferrer">{label}</a>
-          ))}
-        </p>
+        <div>
+          <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">About</p>
+          <h1 className="mt-2 font-serif text-4xl font-semibold tracking-tight sm:text-5xl">{blog.author}</h1>
+          <p className="mt-6 text-lg leading-relaxed text-zinc-600 dark:text-zinc-300">{profile.intro}</p>
+          <h2 className="mt-10 text-sm font-semibold uppercase tracking-wider text-zinc-500">Expertise</h2>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+            {profile.expertise.map((item) => (
+              <li key={item} className={cn(card, "px-4 py-3 text-sm")}>{item}</li>
+            ))}
+          </ul>
+          <h2 className="mt-10 text-sm font-semibold uppercase tracking-wider text-zinc-500">Why this blog</h2>
+          <p className="mt-3 leading-relaxed text-zinc-600 dark:text-zinc-300">{profile.why}</p>
+          <div className="mt-10 flex flex-wrap gap-3">
+            <Link href={`/?blog=${person}`} className={buttonPrimary}>Read {blog.author.split(" ")[0]}&apos;s posts</Link>
+            <Link href={`/about/${other}/`} className={buttonSecondary}>Meet {BLOGS[other].author.split(" ")[0]}</Link>
+          </div>
+        </div>
       </div>
     </div>
   );

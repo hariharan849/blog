@@ -85,7 +85,8 @@ def search(query, mode=None, limit=10, queryset=None):
 
 
 def _result(post, score, query, passages, matched_by):
-    source = passages[0].text if passages else (post.search_text or post.excerpt or post.title)
+    # Chunk text starts with a "Title > Heading" context line; leave it out of the snippet.
+    source = passages[0].text.split("\n", 1)[-1] if passages else (post.search_text or post.excerpt or post.title)
     return SearchResult(post=post, score=round(score, 6), snippet=snippet(source, query),
                         passages=passages, matched_by=matched_by)
 

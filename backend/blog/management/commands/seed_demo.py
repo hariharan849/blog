@@ -35,7 +35,10 @@ class Command(BaseCommand):
         ml, _ = Category.objects.get_or_create(name="Machine Learning")
         posts = [
             ("Understanding Transformers", "hariharan", dl, ["transformers", "attention"],
+             "<p>Transformers replaced recurrence with attention, and that one change reshaped deep learning.</p>"
              "<h2>Attention</h2><p>Self-attention lets every token look at every other token.</p>"
+             "<pre><code>scores = q @ k.T / math.sqrt(d_k)\nweights = softmax(scores)\nout = weights @ v</code></pre>"
+             "<h3>Multiple heads</h3><p>Several heads attend to different relationships in parallel.</p>"
              "<h2>Why it scales</h2><p>Transformers parallelise across the sequence, unlike RNNs.</p>"),
             ("Retrieval Augmented Generation in Practice", "hariharan", ml, ["rag", "llm"],
              "<p>RAG grounds language model answers in your own documents using embeddings and search.</p>"),

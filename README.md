@@ -12,6 +12,11 @@ Dockerfile  One container: Next.js is the public server and proxies /api, /admin
             /sitemap.xml, /robots.txt and /llms.txt to Django on 127.0.0.1:8000
 ```
 
+The frontend uses Tailwind CSS with an editorial design that follows the system light/dark
+setting. It includes a ⌘K / Ctrl+K command palette (search as you type, using the hybrid AI
+search), instant topic and author filtering on the home page, and on posts a reading-progress
+bar, a sticky table of contents and copy buttons on code blocks.
+
 The browser only ever talks to one origin, so authentication uses Django's session cookie and
 CSRF token, with no CORS setup. Public pages (home, posts, categories, tags, search, about) are
 rendered on the server with metadata and `BlogPosting` JSON-LD. Login, comments, the post editor

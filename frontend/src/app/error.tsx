@@ -1,11 +1,13 @@
 "use client";
 
+import { buttonPrimary } from "@/lib/ui";
+
 export default function Error({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
-    <div className="text-center py-5">
-      <h1 className="h3">Something went wrong</h1>
-      <p className="text-muted">The server could not be reached. Please try again.</p>
-      <button type="button" className="btn btn-primary" onClick={() => retry()}>Try again</button>
+    <div className="mx-auto max-w-md px-4 py-28 text-center">
+      <h1 className="font-serif text-2xl font-semibold">Something went wrong</h1>
+      <p className="mt-2 text-zinc-500">The server could not be reached. Please try again.</p>
+      <button type="button" className={`${buttonPrimary} mt-8`} onClick={() => retry()}>Try again</button>
     </div>
   );
 }

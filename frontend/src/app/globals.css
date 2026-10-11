@@ -1,87 +1,65 @@
-:root {
-  --brand-gradient: linear-gradient(to right, #0f2027, #203a43, #2c5364);
-  --brand-dark: #203a43;
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-serif: "Fraunces Variable", ui-serif, Georgia, serif;
+
+  --animate-fade-in: fade-in 0.35s ease-out both;
+  --animate-pop-in: pop-in 0.18s ease-out both;
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes pop-in {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+  }
 }
 
-html,
-body {
-  height: 100%;
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-indigo-500) 30%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-indigo-500);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Leave room for the sticky header when jumping to a heading. */
+  .prose :where(h2, h3) {
+    scroll-margin-top: 6rem;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
-body {
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  background: #f8f9fa;
+@utility cover-pattern {
+  background-image: radial-gradient(rgb(255 255 255 / 0.18) 1px, transparent 1px);
+  background-size: 18px 18px;
 }
 
-main {
-  flex: 1;
-}
-
-.navbar-brand-gradient {
-  background: var(--brand-gradient);
-}
-
-.post-card {
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
-  transition: transform 0.2s;
-}
-
-.post-card:hover {
-  transform: translateY(-2px);
-}
-
-.post-card .card-title a {
-  text-decoration: none;
-  color: #212529;
-}
-
-.post-card .card-title a:hover {
-  color: #0d6efd;
-}
-
-.sidebar .card-header {
-  background: var(--brand-dark);
-  color: #fff;
-  font-weight: 600;
-}
-
-.post-content img {
-  max-width: 100%;
-  height: auto;
-}
-
-.post-content pre {
-  background: #f1f3f5;
-  padding: 1rem;
-  border-radius: 6px;
-  overflow-x: auto;
-}
-
-.site-footer {
-  background: var(--brand-dark);
-  color: #fff;
-}
-
-.site-footer a {
-  color: #ffcc00;
-  margin: 0 0.5rem;
-}
-
-.editor-surface {
-  min-height: 260px;
-  padding: 0.75rem;
-}
-
-.editor-surface:focus {
+@utility editor-surface {
+  min-height: 280px;
+  padding: 1rem 1.25rem;
   outline: none;
-}
-
-.avatar {
-  width: 160px;
-  height: 160px;
-  font-size: 3.5rem;
-  background: var(--brand-gradient);
 }

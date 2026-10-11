@@ -12,17 +12,21 @@ export default async function ArchivePage({ searchParams }: PageProps<"/bytes/ar
   const digests = await apiGet<Page<DigestSummary>>(`/api/v1/bytes/digests/${query({ page })}`, { withCookies: true });
   return (
     <>
-      <div className="list-group">
+      <ol className="relative space-y-1 border-l border-zinc-200 pl-6 dark:border-zinc-800">
         {digests.results.length ? (
           digests.results.map((digest) => (
-            <Link key={digest.date} className="list-group-item list-group-item-action" href={`/bytes/${digest.date}/`}>
-              <strong>{formatDate(digest.date)}</strong> — {digest.headline}
-            </Link>
+            <li key={digest.date} className="relative">
+              <span aria-hidden className="absolute -left-[29px] top-4 size-2.5 rounded-full border-2 border-white bg-indigo-500 dark:border-zinc-950" />
+              <Link className="block rounded-xl px-4 py-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-900" href={`/bytes/${digest.date}/`}>
+                <span className="text-xs text-zinc-500">{formatDate(digest.date)}</span>
+                <span className="block font-medium">{digest.headline}</span>
+              </Link>
+            </li>
           ))
         ) : (
-          <p className="text-muted">No digests yet.</p>
+          <p className="text-zinc-500">No digests yet.</p>
         )}
-      </div>
+      </ol>
       <Pagination page={digests.page} numPages={digests.num_pages} basePath="/bytes/archive/" />
     </>
   );
