@@ -39,6 +39,22 @@ test("the command palette searches as you type and opens a post", async ({ page 
   await expect(palette).toBeHidden();
 });
 
+test("Ask answers from the blog with numbered sources (passages when no API key is set)", async ({ page }) => {
+  await page.goto("/");
+  await page.keyboard.press("Control+k");
+  await page.keyboard.type("how does self-attention work");
+  const palette = page.getByRole("dialog", { name: "Search posts and commands" });
+  await palette.getByRole("option", { name: /Ask AI: “how does self-attention work”/ }).click();
+  await expect(page).toHaveURL(/\/ask\/\?q=how%20does%20self-attention%20work/);
+  await expect(page.getByRole("heading", { level: 1, name: "Ask the blog" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sources" })).toBeVisible();
+  const first = page.locator("#source-1");
+  await expect(first).toContainText("Understanding Transformers");
+  await expect(first).toContainText("Blog post");
+  await first.getByRole("link", { name: /Understanding Transformers/ }).click();
+  await expect(page).toHaveURL(/\/post\/understanding-transformers\/$/);
+});
+
 test("the search page finds posts", async ({ page }) => {
   await page.goto("/search/?q=retrieval");
   await expect(page.getByRole("heading", { name: /Results for/ })).toBeVisible();
@@ -147,6 +163,7 @@ test("Daily Bytes is staff-only and manages sources and interests", async ({ pag
   await page.getByRole("button", { name: "Add sources" }).click();
   await expect(page.getByText(/Added 1 source/)).toBeVisible();
   await expect(page.getByRole("link", { name: `medium.com/@${handle}` })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pipeline health" })).toBeVisible();
 });
 
 test("Django admin works through the proxy", async ({ page }) => {

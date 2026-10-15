@@ -6,13 +6,13 @@ from django.db import connection
 from django.db.models import Q
 
 from .embeddings import get_embedder, normalize
+from .fusion import rrf_merge
 from .text import snippet, tokenize
 from .vector_store import get_vector_store
 
 logger = logging.getLogger(__name__)
 
 MODES = ("keyword", "semantic", "hybrid")
-RRF_K = 60  # Standard reciprocal-rank-fusion constant.
 
 
 class SearchUnavailable(RuntimeError):
@@ -70,18 +70,16 @@ def search(query, mode=None, limit=10, queryset=None):
     if mode == "semantic":
         return [_result(post, score, query, passages, ["semantic"]) for post, score, passages in semantic_hits[:limit]]
 
-    fused = {}
-    for rank, (post, _score) in enumerate(keyword_hits):
-        entry = fused.setdefault(post.pk, {"post": post, "score": 0.0, "passages": [], "matched_by": []})
-        entry["score"] += 1.0 / (RRF_K + rank + 1)
-        entry["matched_by"].append("keyword")
-    for rank, (post, _score, passages) in enumerate(semantic_hits):
-        entry = fused.setdefault(post.pk, {"post": post, "score": 0.0, "passages": [], "matched_by": []})
-        entry["score"] += 1.0 / (RRF_K + rank + 1)
-        entry["passages"] = passages
-        entry["matched_by"].append("semantic")
-    ranked = sorted(fused.values(), key=lambda entry: entry["score"], reverse=True)[:limit]
-    return [_result(e["post"], e["score"], query, e["passages"], e["matched_by"]) for e in ranked]
+    posts = {post.pk: post for post, _score in keyword_hits}
+    passages = {}
+    for post, _score, post_passages in semantic_hits:
+        posts[post.pk] = post
+        passages[post.pk] = post_passages
+    merged = rrf_merge({
+        "keyword": [post.pk for post, _score in keyword_hits],
+        "semantic": [post.pk for post, _score, _passages in semantic_hits],
+    })[:limit]
+    return [_result(posts[pk], score, query, passages.get(pk, []), found_by) for pk, score, found_by in merged]
 
 
 def _result(post, score, query, passages, matched_by):

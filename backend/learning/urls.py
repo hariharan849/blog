@@ -7,6 +7,7 @@ router = SimpleRouter()
 router.register("articles", api.ArticleViewSet, basename="bytes-article")
 router.register("sources", api.SourceViewSet, basename="bytes-source")
 router.register("interests", api.InterestViewSet, basename="bytes-interest")
+router.register("failures", api.PipelineFailureViewSet, basename="bytes-failure")
 
 urlpatterns = [
     path("digests/", api.DigestListView.as_view(), name="bytes-digests"),

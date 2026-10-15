@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Article, DailyDigest, Interest, Source
+from .models import Article, DailyDigest, Interest, PipelineFailure, Source
 
 
 class SourceSerializer(serializers.ModelSerializer):
@@ -58,3 +58,19 @@ class DigestSerializer(serializers.ModelSerializer):
     def get_articles(self, digest):
         items = digest.items.select_related("article__source").prefetch_related("article__tags")
         return ArticleSerializer([item.article for item in items], many=True).data
+
+
+class PipelineFailureSerializer(serializers.ModelSerializer):
+    article = serializers.SerializerMethodField()
+    source = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PipelineFailure
+        fields = ["id", "task_name", "article", "source", "error_type", "error", "attempts", "resolved", "created_at"]
+        read_only_fields = [f for f in fields if f != "resolved"]
+
+    def get_article(self, failure):
+        return {"id": failure.article_id, "title": failure.article.title, "url": failure.article.url} if failure.article else None
+
+    def get_source(self, failure):
+        return {"id": failure.source_id, "name": failure.source.name} if failure.source else None

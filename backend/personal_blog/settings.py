@@ -13,6 +13,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from celery.schedules import crontab
 
 try:  # Load a local .env file when python-dotenv is installed.
     from dotenv import load_dotenv
@@ -239,6 +240,19 @@ REST_FRAMEWORK = {
     "PAGE_SIZE": 20,
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "EXCEPTION_HANDLER": "blog.pagination.exception_handler",
+    # Ask calls Claude, so it is throttled to keep API spend predictable.
+    "DEFAULT_THROTTLE_RATES": {
+        "kb_ask_anon": os.environ.get("KB_ASK_RATE_ANON", "10/hour"),
+        "kb_ask_user": os.environ.get("KB_ASK_RATE_USER", "60/hour"),
+    },
+}
+
+# Knowledge-base question answering (/ask, MCP kb_ask). Uses ANTHROPIC_API_KEY when set.
+KB_ASK = {
+    "MODEL": os.environ.get("KB_ASK_MODEL", "claude-opus-5-5"),
+    "EFFORT": os.environ.get("KB_ASK_EFFORT", "low"),
+    "MAX_TOKENS": int(os.environ.get("KB_ASK_MAX_TOKENS", "8000")),
+    "PASSAGES": int(os.environ.get("KB_ASK_PASSAGES", "8")),
 }
 
 # AI search
@@ -279,6 +293,24 @@ DAILY_BYTES = {
     "FETCH_FULL_TEXT": env_bool("DAILY_BYTES_FETCH_FULL_TEXT", False),
     "USER_AGENT": os.environ.get("DAILY_BYTES_USER_AGENT", "DailyBytesBot/1.0 (+personal reading digest)"),
     "EMAIL_TO": env_list("DAILY_BYTES_EMAIL_TO"),
+}
+
+# Celery runs the feed → index → enrich pipeline and the schedule. Without REDIS_URL, tasks run
+# inline ("eager"), so local development, tests and `manage.py run_daily_bytes` need no broker.
+REDIS_URL = os.environ.get("REDIS_URL", "")
+CELERY_BROKER_URL = REDIS_URL or "memory://"
+CELERY_RESULT_BACKEND = REDIS_URL or None
+CELERY_TASK_ALWAYS_EAGER = not REDIS_URL
+CELERY_TASK_ACKS_LATE = True  # a worker killed mid-task gets the message redelivered...
+CELERY_TASK_REJECT_ON_WORKER_LOST = True  # ...and the idempotent steps resume where it stopped
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+# How long Redis waits before redelivering a message a dead worker never acknowledged.
+CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": int(os.environ.get("CELERY_VISIBILITY_TIMEOUT", "3600"))}
+CELERY_RESULT_EXPIRES = 24 * 3600
+CELERY_TIMEZONE = "UTC"
+CELERY_BEAT_SCHEDULE = {
+    "poll-feeds-hourly": {"task": "learning.poll_feeds", "schedule": crontab(minute=5)},
+    "daily-digest": {"task": "learning.build_daily_digest", "schedule": crontab(hour=6, minute=15)},
 }
 
 # Email (optional, used to send the daily digest). Prints to the console when EMAIL_HOST is unset.

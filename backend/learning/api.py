@@ -10,10 +10,11 @@ from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .models import Article, DailyDigest, Interest, Source
+from .models import Article, DailyDigest, Interest, PipelineFailure, Source
 from .pipeline.feeds import import_sources
 from .serializers import (
-    ArticleSerializer, DigestSerializer, DigestSummarySerializer, InterestSerializer, SourceSerializer,
+    ArticleSerializer, DigestSerializer, DigestSummarySerializer, InterestSerializer, PipelineFailureSerializer,
+    SourceSerializer,
 )
 
 
@@ -105,3 +106,17 @@ class InterestViewSet(StaffMixin, mixins.ListModelMixin, mixins.CreateModelMixin
     queryset = Interest.objects.all()
     serializer_class = InterestSerializer
     pagination_class = None
+
+
+class PipelineFailureViewSet(StaffMixin, mixins.ListModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
+    """Pipeline steps that failed after retries. ?resolved=0 for open ones; PATCH resolved."""
+
+    serializer_class = PipelineFailureSerializer
+    http_method_names = ["get", "patch"]
+
+    def get_queryset(self):
+        failures = PipelineFailure.objects.select_related("article", "source")
+        resolved = self.request.query_params.get("resolved")
+        if resolved in ("0", "1"):
+            failures = failures.filter(resolved=resolved == "1")
+        return failures

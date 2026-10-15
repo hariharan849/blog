@@ -11,6 +11,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/v1/', include(api_urlpatterns)),
     path('api/v1/bytes/', include('learning.urls')),
+    path('api/v1/kb/', include('learning.kb.urls')),
     *discovery_urlpatterns,
 ]
 

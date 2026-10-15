@@ -141,3 +141,43 @@ export interface Interest {
   name: string;
   weight: number;
 }
+
+export type KBScope = "posts" | "newsletters" | "all";
+
+export interface KBSource {
+  n: number;
+  id: string;
+  kind: "post" | "newsletter";
+  title: string;
+  url: string;
+  heading: string;
+  text: string;
+  snippet: string;
+  source: string;
+  published_at: string | null;
+  score: number;
+  matched_by: string[];
+}
+
+export interface AskResult {
+  question: string;
+  answer: string | null;
+  citations: { n: number; quote: string; source_id: string }[];
+  sources: KBSource[];
+  model: string | null;
+  mode: "answer" | "passages";
+  scope: KBScope;
+  error?: string;
+}
+
+export interface PipelineFailure {
+  id: number;
+  task_name: string;
+  article: { id: number; title: string; url: string } | null;
+  source: { id: number; name: string } | null;
+  error_type: string;
+  error: string;
+  attempts: number;
+  resolved: boolean;
+  created_at: string;
+}

@@ -3,24 +3,20 @@
 Uses Claude structured outputs when ANTHROPIC_API_KEY is set, otherwise a keyword fallback.
 """
 import logging
-import os
 import re
 from typing import Literal
 
-import anthropic
 from django.conf import settings
 from django.utils import timezone
 from pydantic import BaseModel, Field
 
 from blog.search.text import chunk_html, tokenize
 
+from ..llm import LLMError, TransientLLMError, get_client, parse_structured  # noqa: F401 (get_client re-exported)
 from ..models import Article, Interest
 
 logger = logging.getLogger(__name__)
 
-# Models that accept server-side refusal fallbacks (`fallbacks="default"`).
-FALLBACK_MODELS = {"claude-opus-5-5", "claude-opus-5", "claude-fable-5-1", "claude-sonnet-5-5"}
-FALLBACK_BETA = "server-side-fallback-2026-07-01"
 MAX_ARTICLE_WORDS = 40_000
 
 
@@ -40,15 +36,7 @@ class ArticleInsights(BaseModel):
     worth_deep_read: bool = Field(description="True if the full article rewards a careful read.")
 
 
-class EnrichmentError(RuntimeError):
-    pass
-
-
-def get_client():
-    """An Anthropic client when credentials are configured, else ``None`` (keyword fallback)."""
-    if not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_AUTH_TOKEN")):
-        return None
-    return anthropic.Anthropic()
+EnrichmentError = LLMError  # kept for callers that predate learning.llm
 
 
 def interests_text():
@@ -71,33 +59,10 @@ def system_prompt(task):
 
 def call_claude(client, task, user_content, output_format):
     config = settings.DAILY_BYTES
-    model = config["MODEL"]
-    extra = {"betas": [FALLBACK_BETA], "fallbacks": "default"} if model in FALLBACK_MODELS else {}
-    try:
-        response = client.beta.messages.parse(
-            model=model,
-            max_tokens=16000,
-            output_config={"effort": config["EFFORT"]},
-            system=[{"type": "text", "text": system_prompt(task), "cache_control": {"type": "ephemeral"}}],
-            messages=[{"role": "user", "content": user_content}],
-            output_format=output_format,
-            **extra,
-        )
-    except anthropic.AuthenticationError:
-        raise  # Misconfiguration: every call would fail, so stop the run.
-    except anthropic.RateLimitError as exc:  # Already retried by the SDK.
-        raise EnrichmentError(f"Rate limited: {exc.message}") from exc
-    except anthropic.APIStatusError as exc:
-        raise EnrichmentError(f"API error {exc.status_code}: {exc.message}") from exc
-    except anthropic.APIConnectionError as exc:
-        raise EnrichmentError(f"Connection error: {exc}") from exc
-
-    if response.stop_reason == "refusal":
-        category = getattr(response.stop_details, "category", None) if response.stop_details else None
-        raise EnrichmentError(f"Model declined (category: {category or 'unspecified'})")
-    if response.parsed_output is None:
-        raise EnrichmentError(f"No structured output (stop_reason: {response.stop_reason})")
-    return response.parsed_output, response.model
+    return parse_structured(
+        client, model=config["MODEL"], effort=config["EFFORT"], system=system_prompt(task),
+        user_content=user_content, output_format=output_format,
+    )
 
 
 def article_prompt(article):
@@ -186,12 +151,19 @@ def enrich_basic(article):
     return list(dict.fromkeys(matched + categories))[:6]
 
 
-def enrich_article(article, client=None):
-    """Enrich one article in place and save it. Returns the new status."""
+def enrich_article(article, client=None, raise_transient=False):
+    """Enrich one article in place and save it. Returns the new status.
+
+    With ``raise_transient`` (used by the Celery task), rate limits / outages are raised so the
+    task retries later, instead of marking the article as failed.
+    """
     try:
         tags = enrich_with_claude(article, client) if client else enrich_basic(article)
         article.error = ""
-    except EnrichmentError as exc:
+        article.enriched_hash = article.content_hash  # done for this version of the article
+    except LLMError as exc:
+        if raise_transient and isinstance(exc, TransientLLMError):
+            raise
         logger.warning("Enriching article %s failed: %s", article.pk, exc)
         article.status = Article.Status.FAILED
         article.error = str(exc)[:2000]

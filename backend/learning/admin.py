@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 
-from .models import Article, DailyDigest, DigestItem, Interest, Source
+from .models import Article, ArticlePassage, DailyDigest, DigestItem, Interest, PipelineFailure, Source
 from .pipeline.enrich import enrich_article, get_client
 from .pipeline.feeds import fetch_all
 
@@ -49,3 +49,25 @@ class DigestItemInline(admin.TabularInline):
 class DailyDigestAdmin(admin.ModelAdmin):
     list_display = ("date", "headline", "generated_by", "emailed_at")
     inlines = [DigestItemInline]
+
+
+@admin.register(ArticlePassage)
+class ArticlePassageAdmin(admin.ModelAdmin):
+    list_display = ("article", "position", "heading", "valid_from", "valid_to")
+    list_filter = (("valid_to", admin.EmptyFieldListFilter),)
+    search_fields = ("text", "article__title")
+    raw_id_fields = ("article",)
+    exclude = ("embedding",)
+
+
+@admin.register(PipelineFailure)
+class PipelineFailureAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "task_name", "article", "source", "error_type", "attempts", "resolved")
+    list_filter = ("task_name", "resolved", "error_type")
+    search_fields = ("error",)
+    raw_id_fields = ("article", "source")
+    actions = ["mark_resolved"]
+
+    @admin.action(description="Mark as resolved")
+    def mark_resolved(self, request, queryset):
+        queryset.update(resolved=True)

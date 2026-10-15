@@ -3,9 +3,9 @@
 # and optionally ANTHROPIC_API_KEY plus the EMAIL_* / DAILY_BYTES_EMAIL_TO settings.
 name: Daily Bytes
 
+# The Celery worker (beat) now runs the pipeline on a schedule; this workflow is a manual fallback
+# for deployments without a worker, so it no longer runs on its own (that would double-run).
 on:
-  schedule:
-    - cron: "15 6 * * *"  # 06:15 UTC
   workflow_dispatch:
 
 jobs:

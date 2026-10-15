@@ -14,9 +14,11 @@ dj-database-url>=2.1
 psycopg2-binary>=2.9
 python-dotenv>=1.0
 
-# Daily Bytes (feed reader + Claude enrichment)
+# Daily Bytes / knowledge base (feed reader, Claude, background pipeline, MCP server)
 anthropic>=1.12
 feedparser>=6.0
+celery[redis]>=5.4
+mcp>=2.0
 
 # AI search has no extra Python dependencies: embeddings are fetched over HTTP (Voyage AI or any
 # OpenAI-compatible endpoint) and vectors are stored in the database. Optional for large corpora:

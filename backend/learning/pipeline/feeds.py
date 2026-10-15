@@ -4,6 +4,7 @@ Only public RSS/Atom feeds are read (plus, optionally, the public article page w
 allows it). Member-only and paywalled content is never bypassed.
 """
 import calendar
+import hashlib
 import csv
 import io
 import logging
@@ -211,8 +212,13 @@ def fetch_full_text(url):
         return ""
 
 
+def entry_hash(title, html):
+    """Fingerprint of a feed entry, used to detect edits to an already-stored article."""
+    return hashlib.sha256(f"{title}\x1f{html}".encode()).hexdigest()
+
+
 def fetch_source(source, now=None):
-    """Pull new entries from one feed. Returns the number of new articles stored."""
+    """Pull new and edited entries from one feed. Returns how many articles were added or updated."""
     now = now or timezone.now()
     cutoff = now - timedelta(days=_config()["MAX_ARTICLE_AGE_DAYS"])
     parsed = feedparser.parse(
@@ -231,7 +237,7 @@ def fetch_source(source, now=None):
         source.save(update_fields=["last_fetched_at", "last_error"])
         return 0
 
-    created = 0
+    changed = 0
     for entry in parsed.entries:
         link = entry.get("link")
         if not link:
@@ -240,21 +246,35 @@ def fetch_source(source, now=None):
         if published and published < cutoff:
             continue
         url = canonical_url(link)
-        if Article.objects.filter(url=url).exists():
-            continue
+        title = (entry.get("title") or url)[:500]
         html = _entry_html(entry)
+        digest = entry_hash(title, html)
+        existing = Article.objects.filter(url=url).first()
+        if existing and (existing.source_id != source.id or existing.content_hash == digest):
+            continue  # unchanged, or a cross-post of an article another feed already provides
         text = html_to_text(html)
         if len(text.split()) < SHORT_FEED_WORDS and _config()["FETCH_FULL_TEXT"]:
             page = fetch_full_text(link)
             if page and len(html_to_text(page).split()) > len(text.split()):
                 html, text = page, html_to_text(page)
-        Article.objects.create(
-            source=source, url=url, guid=entry.get("id", "")[:1000], title=(entry.get("title") or url)[:500],
-            author=(entry.get("author") or "")[:200], published_at=published or now,
-            content_html=html, content_text=text, word_count=len(text.split()),
-            feed_categories=[tag.get("term") for tag in entry.get("tags", []) if tag.get("term")][:20],
-        )
-        created += 1
+        fields = {
+            "title": title, "content_html": html, "content_text": text, "word_count": len(text.split()),
+            "feed_categories": [tag.get("term") for tag in entry.get("tags", []) if tag.get("term")][:20],
+            "content_hash": digest,
+        }
+        if existing:
+            # Edited upstream: store the new version and mark it for re-indexing/enrichment. Old
+            # passages are superseded (kept with valid_to) by the indexer, not deleted.
+            for name, value in fields.items():
+                setattr(existing, name, value)
+            existing.status = Article.Status.NEW
+            existing.save()
+        else:
+            Article.objects.create(
+                source=source, url=url, guid=entry.get("id", "")[:1000], author=(entry.get("author") or "")[:200],
+                published_at=published or now, **fields,
+            )
+        changed += 1
 
     feed_title = parsed.feed.get("title")
     if feed_title and source.name in ("", default_name(source.site_url or source.feed_url)):
@@ -263,7 +283,7 @@ def fetch_source(source, now=None):
     source.modified = parsed.get("modified") or ""
     source.last_error = ""
     source.save()
-    return created
+    return changed
 
 
 def fetch_all(sources=None):

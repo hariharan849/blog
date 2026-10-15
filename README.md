@@ -6,10 +6,13 @@ Personal blogs of Hariharan Manoharan and Rajan Singh, with AI-ready search and 
 ## Architecture
 
 ```
-backend/    Django + Django REST Framework: JSON API, admin, AI search, Daily Bytes pipeline
+backend/    Django + Django REST Framework: JSON API, admin, AI search, knowledge base,
+            Daily Bytes pipeline (Celery tasks), MCP server
 frontend/   Next.js (React, TypeScript): every page, server-side rendered for SEO
 Dockerfile  One container: Next.js is the public server and proxies /api, /admin, /media,
             /sitemap.xml, /robots.txt and /llms.txt to Django on 127.0.0.1:8000
+worker      The same image running `celery worker --beat` with Redis: feed polling,
+            indexing, enrichment and the daily digest, with retries
 ```
 
 The frontend uses Tailwind CSS with an editorial design that follows the system light/dark
@@ -49,7 +52,9 @@ npm run dev
 Open http://localhost:3000. Next.js forwards `/api`, `/admin` and `/media` to Django, so the
 admin is at http://localhost:3000/admin/.
 
-**Or with Docker Compose** (Postgres + both dev servers with hot reload):
+Background tasks run inline when `REDIS_URL` isn't set, so you don't need Redis for development.
+
+**Or with Docker Compose** (Postgres, Redis, a Celery worker and both dev servers with hot reload):
 
 ```bash
 docker compose up
@@ -68,7 +73,8 @@ Backend settings come from environment variables; `backend/.env` is loaded autom
 | `SITE_URL` | Public URL, e.g. `https://blog.example.com` (canonical links, CSRF trusted origin) |
 | `DATABASE_URL` | e.g. `postgres://user:pass@host/db`; SQLite is used when unset |
 | `AI_SEARCH_EMBEDDER` | Embedding provider (see below) |
-| `ANTHROPIC_API_KEY` | Optional, for Daily Bytes |
+| `ANTHROPIC_API_KEY` | Optional: Daily Bytes enrichment and Ask answers |
+| `REDIS_URL` | Celery broker, e.g. `redis://localhost:6379/0`; without it tasks run inline |
 
 The frontend reads `BACKEND_URL` (default `http://127.0.0.1:8000`) and optionally `SITE_URL`;
 see [`frontend/.env.example`](frontend/.env.example).
@@ -86,9 +92,9 @@ docker run -p 10000:10000 -e DJANGO_SECRET_KEY=... -e DJANGO_ALLOWED_HOST=localh
 On start the container runs migrations, then starts gunicorn (internal) and the Next.js server on
 `$PORT`.
 
-**Render:** create the service from [`render.yaml`](render.yaml) (Blueprint), or switch the
-existing web service to the Docker runtime. Set `SITE_URL` and `DJANGO_ALLOWED_HOST` to your
-domain. The Blueprint also creates a Postgres database for `DATABASE_URL`. Uploaded images are
+**Render:** create everything from [`render.yaml`](render.yaml) (Blueprint): the web service, a
+background worker (Celery worker + scheduler, same image), a Key Value (Redis) instance and a
+Postgres database. Set `SITE_URL` and `DJANGO_ALLOWED_HOST` to your domain. Uploaded images are
 stored on the container's disk, which is lost on redeploy, so attach a persistent disk at
 `/app/backend/media` (or move media to object storage) if you upload images.
 
@@ -103,7 +109,8 @@ All endpoints live under `/api/v1/` and return JSON. Errors look like
 | `POST posts/<slug>/comments/` | Logged-in users |
 | `POST posts/` (multipart, with image) | Superusers |
 | `GET auth/csrf/`, `GET auth/me/`, `POST auth/login/`, `POST auth/logout/`, `POST auth/register/` | Public |
-| `bytes/digests/`, `bytes/articles/`, `bytes/sources/`, `bytes/interests/` | Staff |
+| `GET kb/search/`, `POST kb/ask/` (throttled) | Public over blog posts; newsletter scopes are staff-only |
+| `bytes/digests/`, `bytes/articles/`, `bytes/sources/`, `bytes/interests/`, `bytes/failures/` | Staff |
 
 ## AI search
 
@@ -144,6 +151,56 @@ pgvector (or Qdrant, etc.) and point `AI_SEARCH_VECTOR_STORE` at it; nothing els
 
 Post pages also include `BlogPosting` JSON-LD structured data.
 
+## Knowledge base and Ask
+
+Blog posts and the full text of every newsletter article you follow are split into heading-aware
+passages and embedded. `GET /api/v1/kb/search/` runs hybrid search over these passages.
+`POST /api/v1/kb/ask/`, and the `/ask` page (also reachable from ⌘K → "Ask AI"), answers
+questions from the top passages with numbered citations. Citations that don't match a source
+that was actually sent are dropped. Without `ANTHROPIC_API_KEY` it returns the passages only.
+
+- **Who sees what:** anyone can ask about blog posts. Newsletter passages are other people's
+  writing kept privately, so only staff can search or ask over them.
+- **Cost control:** Ask is rate-limited (`KB_ASK_RATE_ANON`, `KB_ASK_RATE_USER`).
+- **Edited articles:** when an article changes upstream, its old passages are kept with
+  `valid_to` set rather than deleted, so earlier citations still resolve. Search only uses the
+  current version.
+
+### MCP server
+
+Query the knowledge base from Claude Code, Claude Desktop, Cursor or any MCP client:
+
+```bash
+claude mcp add pychanter -- python /path/to/blog/backend/manage.py kb_mcp
+```
+
+It runs over stdio using the database in `backend/.env` (or `DATABASE_URL`). Tools:
+
+| Tool | What it does |
+| --- | --- |
+| `kb_search` | Passages from posts and newsletters |
+| `kb_ask` | An answer with citations |
+| `kb_add_source` | Follow a feed and fetch it |
+| `kb_sync` | Poll all feeds now |
+
+The two write tools queue Celery tasks and return the task id.
+
+For Claude Desktop or Cursor, add the same command to their MCP config, e.g.
+`{"command": "python", "args": ["/path/to/blog/backend/manage.py", "kb_mcp"]}`.
+
+### Reliable pipeline
+
+`poll_feeds` → `fetch_source` (ETag-aware) → `process_article` (index, then enrich) are Celery
+tasks:
+- **No double charges:** each step records the content hash it finished for. A retry, a rerun or
+  a duplicate message skips completed steps and never pays twice for embeddings or Claude calls.
+- **Retries:** network errors, rate limits and provider outages retry with exponential backoff.
+- **Worker crashes:** tasks are acknowledged late, so a task on a killed worker is redelivered
+  and resumes.
+- **Failures dataset:** steps that still fail are stored as `PipelineFailure` rows, shown under
+  Daily Bytes → Sources ("Pipeline health"). Export them with
+  `python manage.py export_failures -o failures.jsonl` (JSON Lines) to build an evaluation set.
+
 ## Daily Bytes: personal learning digest
 
 A private, staff-only page at `/bytes/`. Every day it reads the feeds of the writers and
@@ -177,12 +234,12 @@ Without it a keyword-based fallback is used. With the default model (`claude-opu
 about 30 articles a day costs roughly $0.50 to $1 per day. Set `DAILY_BYTES_MODEL=claude-haiku-5-5`
 to bring that down to about 2 cents a day. All settings are listed in [`backend/.env.example`](backend/.env.example).
 
-**Scheduling.** The command needs a persistent database (Postgres via `DATABASE_URL`). The SQLite
-file in this repo is reset on every deploy. Pick one:
-- **GitHub Actions:** `.github/workflows/daily-bytes.yml` runs at 06:15 UTC. Add the
-  `DATABASE_URL`, `DJANGO_SECRET_KEY` and `ANTHROPIC_API_KEY` repository secrets.
-- **Render Cron Job:** command `cd backend && python manage.py run_daily_bytes`, same environment as the web service.
-- **crontab:** `15 6 * * * cd /path/to/blog/backend && ../venv/bin/python manage.py run_daily_bytes`
+**Scheduling.** The Celery worker's scheduler (`celery -A personal_blog worker --beat`) polls
+feeds every hour and builds the digest at 06:15 UTC. This needs Redis and a persistent database
+(Postgres via `DATABASE_URL`).
+
+Without a worker, run `python manage.py run_daily_bytes` from cron, or trigger the manual
+`.github/workflows/daily-bytes.yml` workflow. Both run the same steps inline.
 
 To get the digest by email, set `DAILY_BYTES_EMAIL_TO` and the `EMAIL_*` settings.
 

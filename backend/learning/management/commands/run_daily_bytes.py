@@ -3,12 +3,13 @@ from datetime import date as date_type
 from django.core.management.base import BaseCommand, CommandError
 
 from learning.pipeline.digest import build_digest, email_digest
-from learning.pipeline.enrich import enrich_pending, get_client
+from learning.llm import get_client
 from learning.pipeline.feeds import fetch_all
+from learning.pipeline.steps import process_pending
 
 
 class Command(BaseCommand):
-    help = "Fetch followed feeds, extract insights from new articles and build the day's Daily Bytes digest."
+    help = "Fetch followed feeds, index and enrich new articles, and build the day's Daily Bytes digest (runs inline)."
 
     def add_arguments(self, parser):
         parser.add_argument("--date", help="Digest date (YYYY-MM-DD); defaults to today.")
@@ -31,9 +32,13 @@ class Command(BaseCommand):
             new, failed = fetch_all()
             self.stdout.write(f"Fetched {new} new article(s); {failed} source(s) reported errors.")
         if not options["skip_enrich"]:
-            counts = enrich_pending(limit=options["limit"], client=client)
-            summary = ", ".join(f"{count} {status}" for status, count in counts.items()) or "nothing new"
-            self.stdout.write(f"Enriched: {summary}.")
+            # Index (chunk + embed) and enrich each new or edited article; finished steps are skipped.
+            summary = process_pending(limit=options["limit"], client=client)
+            statuses = ", ".join(f"{count} {status}" for status, count in summary["statuses"].items()) or "nothing new"
+            self.stdout.write(f"Indexed {summary['indexed']} article(s) for search.")
+            self.stdout.write(f"Enriched: {statuses}.")
+            if summary["failed"]:
+                self.stdout.write(self.style.WARNING(f"{summary['failed']} article(s) failed; see Pipeline failures."))
 
         digest = build_digest(date=date, client=client)
         self.stdout.write(self.style.SUCCESS(

@@ -82,6 +82,12 @@ class Article(models.Model):
     is_read = models.BooleanField(default=False)
     is_starred = models.BooleanField(default=False)
 
+    # Pipeline bookkeeping: each step records the content hash it last completed for, so a retry
+    # or re-run skips finished steps (and never pays twice for embeddings or Claude calls).
+    content_hash = models.CharField(max_length=64, blank=True, editable=False)
+    indexed_hash = models.CharField(max_length=64, blank=True, editable=False)
+    enriched_hash = models.CharField(max_length=64, blank=True, editable=False)
+
     class Meta:
         ordering = ["-published_at", "-fetched_at"]
 
@@ -123,3 +129,54 @@ class DigestItem(models.Model):
     class Meta:
         ordering = ["rank"]
         constraints = [models.UniqueConstraint(fields=["digest", "article"], name="unique_digest_article")]
+
+
+class ArticlePassage(models.Model):
+    """A chunk of a newsletter article plus its embedding: the unit of search and of citations.
+
+    When an article is edited, its old passages are kept with ``valid_to`` set instead of being
+    deleted, so answers that cited them stay traceable.
+    """
+
+    article = models.ForeignKey(Article, on_delete=models.CASCADE, related_name="passages")
+    position = models.PositiveIntegerField()
+    heading = models.CharField(max_length=255, blank=True)
+    text = models.TextField()
+    embedding = models.JSONField(null=True, blank=True)
+    embedding_model = models.CharField(max_length=100, blank=True)
+    content_hash = models.CharField(max_length=64)
+    valid_from = models.DateTimeField()
+    valid_to = models.DateTimeField(null=True, blank=True, db_index=True)
+
+    class Meta:
+        ordering = ["article", "position"]
+        indexes = [models.Index(fields=["article", "valid_to"], name="passage_current_idx")]
+
+    @property
+    def is_current(self):
+        return self.valid_to is None
+
+    def __str__(self):
+        return f"{self.article.title} [{self.position}]"
+
+
+class PipelineFailure(models.Model):
+    """A pipeline step that still failed after its retries: raw material for an evaluation set."""
+
+    task_name = models.CharField(max_length=200)
+    task_id = models.CharField(max_length=255, blank=True)
+    source = models.ForeignKey(Source, null=True, blank=True, on_delete=models.SET_NULL, related_name="failures")
+    article = models.ForeignKey(Article, null=True, blank=True, on_delete=models.SET_NULL, related_name="failures")
+    payload = models.JSONField(default=dict, blank=True)
+    error_type = models.CharField(max_length=200, blank=True)
+    error = models.TextField()
+    traceback = models.TextField(blank=True)
+    attempts = models.PositiveIntegerField(default=1)
+    resolved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.task_name}: {self.error[:60]}"

@@ -30,6 +30,13 @@ function actionsFor(user: User | null, query: string): Item[] {
   const matching = q ? actions.filter((action) => action.title.toLowerCase().includes(q)) : actions;
   if (q) {
     matching.unshift({
+      id: "ask",
+      kind: "action",
+      title: `Ask AI: “${query.trim()}”`,
+      subtitle: "Get an answer with citations",
+      href: `/ask/?q=${encodeURIComponent(query.trim())}`,
+    });
+    matching.splice(1, 0, {
       id: "all-results",
       kind: "action",
       title: `See all results for “${query.trim()}”`,

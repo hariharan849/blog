@@ -1,4 +1,5 @@
-# Render Blueprint: one Docker web service (Next.js + Django) and a Postgres database.
+# Render Blueprint: the web service (Next.js + Django), a Celery worker for the pipeline,
+# Redis (Key Value) as the Celery broker, and a Postgres database.
 services:
   - type: web
     name: pychanter
@@ -6,17 +7,41 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /about/hariharan/
     envVars:
+      - fromGroup: pychanter-shared
+      - key: SITE_URL            # e.g. https://pychanter.onrender.com
+        sync: false
+      - key: DJANGO_ALLOWED_HOST # e.g. pychanter.onrender.com
+        sync: false
+
+  # Celery worker + beat: hourly feed polling, indexing/enrichment with retries, daily digest.
+  - type: worker
+    name: pychanter-worker
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: sh -c "cd /app/backend && celery -A personal_blog worker --beat --loglevel=info --concurrency=2"
+    envVars:
+      - fromGroup: pychanter-shared
+
+  - type: keyvalue
+    name: pychanter-redis
+    ipAllowList: []  # only reachable from services in this account
+    maxmemoryPolicy: noeviction  # never drop queued tasks
+
+envVarGroups:
+  - name: pychanter-shared
+    envVars:
       - key: DJANGO_SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
         fromDatabase:
           name: pychanter-db
           property: connectionString
-      - key: SITE_URL            # e.g. https://pychanter.onrender.com
-        sync: false
-      - key: DJANGO_ALLOWED_HOST # e.g. pychanter.onrender.com
-        sync: false
-      - key: ANTHROPIC_API_KEY   # optional, for Daily Bytes
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: pychanter-redis
+          property: connectionString
+      - key: ANTHROPIC_API_KEY   # optional: Daily Bytes enrichment and Ask answers
         sync: false
 
 databases:

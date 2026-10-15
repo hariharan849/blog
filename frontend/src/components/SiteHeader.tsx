@@ -14,6 +14,7 @@ import { buttonPrimary, cn, container } from "@/lib/ui";
 function navLinks(user: User | null) {
   return [
     { href: "/", label: "Posts", match: (p: string) => p === "/" || p.startsWith("/post/") || p.startsWith("/category/") || p.startsWith("/tag/") },
+    { href: "/ask/", label: "Ask", match: (p: string) => p.startsWith("/ask") },
     ...(user?.is_staff ? [{ href: "/bytes/", label: "Daily Bytes", match: (p: string) => p.startsWith("/bytes") }] : []),
     { href: "/about/hariharan/", label: "About", match: (p: string) => p.startsWith("/about") },
     ...(user?.is_superuser ? [{ href: "/add/", label: "Write", match: (p: string) => p.startsWith("/add") }] : []),

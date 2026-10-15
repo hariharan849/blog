@@ -83,7 +83,10 @@ describe("CommandPalette", () => {
     expect(screen.getByRole("option", { name: /transformers/ })).toHaveAttribute("aria-selected", "true");
 
     fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(screen.getByRole("option", { name: /Ask AI: “attention”/ })).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(input, { key: "ArrowDown" });
     expect(screen.getByRole("option", { name: /See all results/ })).toHaveAttribute("aria-selected", "true");
+    fireEvent.keyDown(input, { key: "ArrowUp" });
     fireEvent.keyDown(input, { key: "ArrowUp" });
     fireEvent.keyDown(input, { key: "Enter" });
     expect(push).toHaveBeenCalledWith("/post/transformers/");

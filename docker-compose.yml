@@ -10,6 +10,9 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
+  redis:
+    image: redis:7-alpine
+
   backend:
     image: python:3.12-slim
     working_dir: /app/backend
@@ -18,12 +21,29 @@ services:
       DEBUG: "True"
       DATABASE_URL: postgres://blog:blog@db:5432/blog
       DJANGO_ALLOWED_HOST: localhost,backend
+      REDIS_URL: redis://redis:6379/0
     volumes:
       - ./backend:/app/backend
     ports:
       - "8000:8000"
     depends_on:
       - db
+      - redis
+
+  # Runs the feed → index → enrich pipeline and the schedule (hourly polling, daily digest).
+  worker:
+    image: python:3.12-slim
+    working_dir: /app/backend
+    command: sh -c "pip install -q -r requirements.txt && celery -A personal_blog worker --beat --loglevel=info"
+    environment:
+      DEBUG: "True"
+      DATABASE_URL: postgres://blog:blog@db:5432/blog
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+      - backend
+      - redis
 
   frontend:
     image: node:22-slim
