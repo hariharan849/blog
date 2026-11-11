@@ -249,29 +249,6 @@ button:disabled {
   margin: 0 0 0.25rem;
 }
 
-.author-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-.author-tabs a {
-  padding: 0.3rem 0.9rem;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-}
-.author-tabs a:hover {
-  text-decoration: none;
-  border-color: var(--accent);
-}
-.author-tabs a.active {
-  background: var(--brand);
-  border-color: var(--brand);
-  color: #fff;
-}
-
 /* ---------- Cards ---------- */
 .card {
   background: var(--surface);
@@ -578,14 +555,6 @@ button:disabled {
 }
 .footer-inner p {
   margin: 0;
-}
-.footer-authors {
-  display: grid;
-  gap: 0.25rem;
-}
-.footer-authors span {
-  margin-right: 0.5rem;
-  opacity: 0.85;
 }
 .site-footer a {
   color: var(--gold);

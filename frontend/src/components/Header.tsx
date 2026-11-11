@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { profiles } from "@/lib/authors";
 import SearchForm from "./SearchForm";
 
 export default function Header() {
@@ -11,11 +10,7 @@ export default function Header() {
         </Link>
         <nav className="nav" aria-label="Main">
           <Link href="/">Home</Link>
-          {profiles.map((p) => (
-            <Link key={p.username} href={`/about/${p.username}`}>
-              About {p.shortName}
-            </Link>
-          ))}
+          <Link href="/about">About</Link>
         </nav>
         <SearchForm className="header-search" />
       </div>

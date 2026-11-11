@@ -101,10 +101,6 @@ def about_hariharan(request):
     # Render the "About me" page for Hariharan.
     return render(request, 'blog/about_hariharan.html')
 
-def about_rajan(request):
-    # Render the "About me" page for Raja.
-    return render(request, 'blog/about_rajan.html')
-
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('home')

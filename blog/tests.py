@@ -10,7 +10,7 @@ from .models import BlogPost, Category, Comment
 class ApiTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user("hariharan", password="x", first_name="Hariharan")
-        self.other = User.objects.create_user("rajan", password="x")
+        self.other = User.objects.create_user("guest", password="x")
         self.cat = Category.objects.create(name="Deep Learning")
         self.post = BlogPost.objects.create(
             title="Hello World", content="<p>Intro to <b>nets</b></p><p>Part&nbsp;two &amp; more</p>",
@@ -30,7 +30,7 @@ class ApiTests(TestCase):
         self.assertNotIn("Draft", titles)
 
     def test_filters(self):
-        self.assertEqual(self.client.get("/api/posts/?author=rajan").json()["count"], 1)
+        self.assertEqual(self.client.get("/api/posts/?author=guest").json()["count"], 1)
         self.assertEqual(self.client.get("/api/posts/?tag=pytorch").json()["count"], 1)
         self.assertEqual(self.client.get("/api/posts/?category=deep-learning").json()["count"], 2)
         self.assertEqual(self.client.get("/api/posts/?q=nets").json()["count"], 1)
@@ -60,4 +60,4 @@ class ApiTests(TestCase):
         cats = self.client.get("/api/categories/").json()["results"]
         self.assertEqual(cats, [{"name": "Deep Learning", "slug": "deep-learning", "post_count": 2}])
         authors = self.client.get("/api/authors/").json()["results"]
-        self.assertEqual([a["username"] for a in authors], ["hariharan", "rajan"])
+        self.assertEqual([a["username"] for a in authors], ["guest", "hariharan"])

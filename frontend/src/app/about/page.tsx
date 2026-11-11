@@ -1,25 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getProfile, profiles } from "@/lib/authors";
+import { profile } from "@/lib/profile";
 
-type Props = { params: Promise<{ author: string }> };
+export const metadata: Metadata = { title: "About" };
 
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return profiles.map((p) => ({ author: p.username }));
-}
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const profile = getProfile((await params).author);
-  return { title: profile ? `About ${profile.shortName}` : "About" };
-}
-
-export default async function AboutPage({ params }: Props) {
-  const profile = getProfile((await params).author);
-  if (!profile) notFound();
-
+export default function AboutPage() {
   return (
     <div className="about card">
       <div className="card-body about-grid">
@@ -56,8 +41,8 @@ export default async function AboutPage({ params }: Props) {
               </a>
             ))}
           </p>
-          <Link href={`/?author=${profile.username}`} className="button">
-            Read {profile.shortName}&apos;s posts →
+          <Link href="/" className="button">
+            Read my posts →
           </Link>
         </div>
       </div>

@@ -25,19 +25,18 @@ npm run dev                  # http://localhost:3000
 
 | Route              | What it shows                                              |
 | ------------------ | ---------------------------------------------------------- |
-| `/`                | Published posts, `?author=<username>` filter, pagination   |
+| `/`                | Published posts, newest first, with pagination             |
 | `/posts/[slug]`    | Post, tags, related posts, comments + comment form         |
 | `/category/[slug]` | Posts in a category                                        |
 | `/tag/[slug]`      | Posts with a tag                                           |
 | `/search?q=`       | Title/content search                                       |
-| `/about/[author]`  | Author profile (content lives in `src/lib/authors.ts`)     |
+| `/about`           | About page (content lives in `src/lib/profile.ts`)         |
 
 ## Notes
 
 - **Writing posts** stays in the Django admin (`/admin/`), which has the CKEditor rich-text editor.
   Only posts with *Is published* checked appear on the site.
-- **Author filter**: the `username` in `src/lib/authors.ts` must match the Django username of each author.
-- **Profile photos**: drop images into `public/images/` and set `avatar` in `src/lib/authors.ts`; initials are shown otherwise.
+- **Profile photos**: drop images into `public/images/` and set `avatar` in `src/lib/profile.ts`; initials are shown otherwise.
 - **Comments** are submitted with a Server Action that calls `POST /api/posts/<slug>/comments/` from the Next.js server.
 - Data is cached with ISR (`revalidate` 30–300s, see `src/lib/api.ts`); new comments revalidate their post immediately.
 - Post images are served from Django's `MEDIA_URL`; make sure media is served in production.

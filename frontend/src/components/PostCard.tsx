@@ -16,10 +16,7 @@ export default function PostCard({ post }: { post: PostSummary }) {
               {post.category.name}
             </Link>
           )}
-          <span>
-            By <Link href={`/?author=${post.author.username}`}>{post.author.name}</Link> ·{" "}
-            <time dateTime={post.created_at}>{formatDate(post.created_at)}</time>
-          </span>
+          <time dateTime={post.created_at}>{formatDate(post.created_at)}</time>
         </div>
         <h2 className="post-card-title">
           <Link href={`/posts/${post.slug}`}>{post.title}</Link>

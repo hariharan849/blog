@@ -10,7 +10,7 @@ class Post(models.Model):
     content = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     image = models.ImageField(upload_to='post_images/', blank=True, null=True)
-    # This field can hold the name of the blog (e.g., "Hariharan's Blog" or "Rajan's Blog")
+    # This field can hold the name of the blog (e.g., "Hariharan's Blog")
     author = models.CharField(max_length=100)
 
     def __str__(self):

@@ -7,7 +7,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: "PyChanter", template: "%s | PyChanter" },
-  description: "Hariharan's and Rajan's blog on deep learning, VFX pipelines and software development.",
+  description: "Hariharan's blog on deep learning, VFX pipelines and software development.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

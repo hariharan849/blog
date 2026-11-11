@@ -44,7 +44,6 @@ export default async function PostPage({ params }: Props) {
           <div className="card-body">
             <h1 className="post-title">{post.title}</h1>
             <p className="meta">
-              By <Link href={`/?author=${post.author.username}`}>{post.author.name}</Link> ·{" "}
               <time dateTime={post.created_at}>{formatDate(post.created_at)}</time> ·{" "}
               {readingTime(post.content)} min read
             </p>
