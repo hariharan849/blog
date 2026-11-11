@@ -1,5 +1,8 @@
 __pycache__/
 *.py[cod]
-staticfiles/
 .pytest_cache/
+.venv/
 backend/.aws-sam/
+.env
+.env.*
+!.env.example

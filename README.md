@@ -15,6 +15,3 @@ Browser ─► Next.js (Vercel) ──server-side──► API Gateway ─► La
 
 CI runs on every push and pull request (`.github/workflows/ci.yml`): typecheck and build the frontend, test and lint the backend.
 The backend deploys from `main` once AWS is connected (see [backend/README.md](backend/README.md#deploys-from-github-actions)).
-
-> The original Django app (`blog/`, `personal_blog/`, `templates/`, `manage.py`, …) is still in the repo but no
-> longer used by the new site. It's scheduled for removal.
