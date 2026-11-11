@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { profile } from "@/lib/profile";
 import { SITE_URL } from "@/lib/format";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: { default: "PyChanter", template: "%s | PyChanter" },
-  description: "Hariharan's blog on deep learning, VFX pipelines and software development.",
+  title: { default: `${profile.name} · ${profile.role}`, template: `%s · ${profile.name}` },
+  description: profile.intro,
+  alternates: { types: { "application/rss+xml": "/rss.xml" } },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

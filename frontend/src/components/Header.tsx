@@ -1,18 +1,27 @@
 import Link from "next/link";
-import SearchForm from "./SearchForm";
+import { profile } from "@/lib/profile";
+
+const nav = [
+  { href: "/projects", label: "Projects" },
+  { href: "/blog", label: "Blog" },
+  { href: "/daily", label: "Daily Dose" },
+  { href: "/about", label: "About" },
+];
 
 export default function Header() {
   return (
     <header className="site-header">
       <div className="container header-inner">
         <Link href="/" className="brand">
-          PyChanter
+          {profile.name}
         </Link>
         <nav className="nav" aria-label="Main">
-          <Link href="/">Home</Link>
-          <Link href="/about">About</Link>
+          {nav.map((n) => (
+            <Link key={n.href} href={n.href}>
+              {n.label}
+            </Link>
+          ))}
         </nav>
-        <SearchForm className="header-search" />
       </div>
     </header>
   );

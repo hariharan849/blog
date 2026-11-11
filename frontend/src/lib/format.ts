@@ -1,16 +1,16 @@
-export function formatDate(iso: string, withTime = false) {
+export function formatDate(iso: string, opts: Intl.DateTimeFormatOptions = {}) {
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T00:00:00Z`) : new Date(iso);
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
-    month: "long",
+    month: "short",
     day: "numeric",
-    ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
     timeZone: "UTC",
-  }).format(new Date(iso));
+    ...opts,
+  }).format(date);
 }
 
-export function readingTime(html: string) {
-  const words = html.replace(/<[^>]*>/g, " ").split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.round(words / 220));
+export function formatDay(day: string) {
+  return formatDate(day, { weekday: "long", month: "long" });
 }
 
 export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");

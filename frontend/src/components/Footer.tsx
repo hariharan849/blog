@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { profile } from "@/lib/profile";
 
 export default function Footer() {
@@ -6,7 +7,7 @@ export default function Footer() {
     <footer className="site-footer">
       <div className="container footer-inner">
         <p>
-          &copy; {year} {profile.name} · Thoughts on AI, VFX and software
+          &copy; {year} {profile.name}
         </p>
         <div className="footer-links">
           {profile.links.map((l) => (
@@ -14,6 +15,9 @@ export default function Footer() {
               {l.label}
             </a>
           ))}
+          <Link href="/admin" className="footer-admin">
+            Admin
+          </Link>
         </div>
       </div>
     </footer>

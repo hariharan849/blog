@@ -1,0 +1,4 @@
+-r src/requirements.txt
+boto3
+moto[dynamodb,ses,ssm,awslambda]==5.2.5
+pytest

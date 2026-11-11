@@ -117,6 +117,7 @@ hr {
   text-decoration: none;
 }
 .nav {
+  margin-left: auto;
   display: flex;
   flex-wrap: wrap;
   gap: 1.1rem;
@@ -128,38 +129,9 @@ hr {
   color: #fff;
   text-decoration: none;
 }
-.header-search {
-  margin-left: auto;
-}
-
-/* ---------- Search form ---------- */
-.search-form {
-  display: flex;
-  gap: 0.5rem;
-  min-width: 0;
-}
-.search-form input {
-  flex: 1;
-  min-width: 0;
-}
-.header-search input {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.35);
-  color: #fff;
-}
-.header-search input::placeholder {
-  color: rgba(255, 255, 255, 0.7);
-}
-.header-search button {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.7);
-}
-.header-search button:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
 /* ---------- Forms & buttons ---------- */
 input,
+select,
 textarea {
   font: inherit;
   color: var(--text);
@@ -170,6 +142,7 @@ textarea {
   width: 100%;
 }
 input:focus,
+select:focus,
 textarea:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
@@ -228,10 +201,6 @@ button:disabled {
 @media (max-width: 900px) {
   .layout {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .header-search {
-    margin-left: 0;
-    width: 100%;
   }
 }
 
@@ -429,48 +398,6 @@ button:disabled {
   margin-bottom: 1rem;
 }
 
-/* ---------- Comments ---------- */
-.comments {
-  margin-top: 2.5rem;
-}
-.comment-list {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 1.5rem;
-  display: grid;
-  gap: 0.75rem;
-}
-.comment-body {
-  margin: 0;
-  white-space: pre-wrap;
-}
-.comment-form {
-  display: grid;
-  gap: 0.9rem;
-  margin-top: 1.5rem;
-}
-.comment-form label {
-  display: grid;
-  gap: 0.3rem;
-  font-weight: 600;
-  font-size: 0.92rem;
-}
-.comment-form .muted {
-  font-weight: 400;
-}
-.field-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.9rem;
-}
-@media (max-width: 600px) {
-  .field-row {
-    grid-template-columns: 1fr;
-  }
-}
-.comment-form button {
-  justify-self: start;
-}
 .field-error {
   color: var(--danger);
   font-weight: 400;
@@ -562,4 +489,238 @@ button:disabled {
 }
 .site-footer a:hover {
   color: #fff;
+}
+
+/* ---------- Portfolio ---------- */
+.small {
+  font-size: 0.85rem;
+}
+.lead {
+  font-size: 1.12rem;
+  color: var(--muted);
+  max-width: 62ch;
+}
+.hero-home {
+  padding: 2.5rem 0 1rem;
+}
+.hero-home h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  max-width: 20ch;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+.section {
+  margin-top: 3rem;
+}
+.section > h2 {
+  margin-bottom: 1rem;
+}
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-bottom: 1rem;
+}
+.section-head h2 {
+  margin: 0;
+}
+.grid {
+  display: grid;
+  gap: 1.25rem;
+}
+.grid-2 {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 360px), 1fr));
+}
+.grid-3 {
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+}
+.stack {
+  display: grid;
+  gap: 1rem;
+}
+.project-card h3,
+.post-card-title,
+.feed-item-title {
+  font-size: 1.15rem;
+  margin: 0.15rem 0 0.5rem;
+}
+.project-card h3 a,
+.feed-item-title a {
+  color: var(--text);
+}
+.project-card h3 a:hover,
+.feed-item-title a:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+.project-card .eyebrow {
+  margin: 0;
+}
+.tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+}
+.badge-warn {
+  background: #f59f00;
+  color: #1f2933;
+}
+.badge-medium {
+  background: #1f2933;
+}
+.badge-substack {
+  background: #ff6719;
+}
+.badge-rss {
+  background: var(--accent);
+}
+@media (prefers-color-scheme: dark) {
+  .badge-medium {
+    background: #e6edf1;
+    color: #0f1a1f;
+  }
+}
+
+/* ---------- Daily Dose ---------- */
+.feed-item-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: start;
+}
+.feed-thumb {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--border);
+}
+@media (max-width: 600px) {
+  .feed-thumb {
+    display: none;
+  }
+  .feed-item-body {
+    grid-template-columns: 1fr;
+  }
+}
+.link-list li.active a {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ---------- About ---------- */
+.skill-group {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+.timeline {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+/* ---------- Admin ---------- */
+.admin-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+}
+.admin-form h2 {
+  font-size: 1.15rem;
+}
+.admin-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+}
+.admin-form-row label {
+  display: grid;
+  gap: 0.3rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.admin-form-row .grow {
+  flex: 1 1 260px;
+}
+.admin-form .success,
+.admin-form .field-error {
+  margin-top: 0.75rem;
+}
+.source-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.source-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.source-row:first-child {
+  border-top: 0;
+}
+.source-row.is-paused {
+  opacity: 0.65;
+}
+.source-main {
+  min-width: 0;
+  flex: 1 1 320px;
+}
+.source-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem;
+}
+.source-main .meta {
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+.source-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: start;
+}
+.button-danger {
+  background: transparent;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+.button-danger:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+}
+.run-now {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+.run-now p {
+  margin: 0;
+}
+
+/* ---------- Footer ---------- */
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+.site-footer .footer-admin {
+  color: rgba(255, 255, 255, 0.55);
 }

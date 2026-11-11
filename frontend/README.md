@@ -1,42 +1,66 @@
-# PyChanter — Next.js frontend
+# Portfolio + blog + Daily Dose (Next.js)
 
-A Next.js 15 (App Router, TypeScript) frontend for the Django blog in the repo root.
-It reads data from the Django JSON API at `/api/` (see `blog/api.py`).
+Next.js 15 (App Router, TypeScript). The backend for the Daily Dose lives in [`/backend`](../backend/README.md).
+
+| Route | What it shows | Data |
+|---|---|---|
+| `/` | Hero, featured projects, today's Daily Dose, latest posts | all of the below |
+| `/projects` | All projects grouped by area | `src/lib/projects.ts` |
+| `/blog`, `/blog/[slug]`, `/blog/tag/[tag]` | Blog | Markdown in `content/posts/` |
+| `/daily`, `/daily/[day]` | Daily Dose: new posts from followed authors | backend API |
+| `/about` | Bio, skills, experience, links | `src/lib/profile.ts` |
+| `/admin` | Add / pause / remove followed authors, run the job now | backend API, GitHub sign-in |
+| `/rss.xml` | RSS feed of the blog | Markdown posts |
 
 ## Run locally
 
 ```bash
-# 1. Start Django (repo root)
-python manage.py runserver 127.0.0.1:8000
+# terminal 1: fake backend (no AWS needed)
+cd backend && pip install -r requirements-dev.txt && python scripts/local_api.py
 
-# 2. Start the frontend
+# terminal 2
 cd frontend
-cp .env.example .env.local   # adjust API_URL if Django runs elsewhere
+cp .env.example .env.local   # set FEED_API_URL=http://127.0.0.1:8787 and FEED_ADMIN_TOKEN=dev-token
 npm install
-npm run dev                  # http://localhost:3000
+npm run dev                   # http://localhost:3000
 ```
 
-| Variable               | Purpose                                                     |
-| ---------------------- | ----------------------------------------------------------- |
-| `API_URL`              | Django base URL, used **server-side only** (no CORS needed). |
-| `NEXT_PUBLIC_SITE_URL` | Public URL of the frontend, for share links and metadata.  |
+## Writing a post
 
-## Pages
+Add `content/posts/my-post.md` (the file name becomes the URL):
 
-| Route              | What it shows                                              |
-| ------------------ | ---------------------------------------------------------- |
-| `/`                | Published posts, newest first, with pagination             |
-| `/posts/[slug]`    | Post, tags, related posts, comments + comment form         |
-| `/category/[slug]` | Posts in a category                                        |
-| `/tag/[slug]`      | Posts with a tag                                           |
-| `/search?q=`       | Title/content search                                       |
-| `/about`           | About page (content lives in `src/lib/profile.ts`)         |
+```markdown
+---
+title: My post
+date: 2026-11-12
+summary: One line shown on cards and in search results.
+tags: [genai, agents]
+draft: false
+---
 
-## Notes
+Markdown content…
+```
 
-- **Writing posts** stays in the Django admin (`/admin/`), which has the CKEditor rich-text editor.
-  Only posts with *Is published* checked appear on the site.
-- **Profile photos**: drop images into `public/images/` and set `avatar` in `src/lib/profile.ts`; initials are shown otherwise.
-- **Comments** are submitted with a Server Action that calls `POST /api/posts/<slug>/comments/` from the Next.js server.
-- Data is cached with ISR (`revalidate` 30–300s, see `src/lib/api.ts`); new comments revalidate their post immediately.
-- Post images are served from Django's `MEDIA_URL`; make sure media is served in production.
+Drafts show up in `npm run dev` but are hidden in production builds.
+
+## Admin sign-in
+
+`/admin` uses GitHub OAuth through NextAuth and only lets in the GitHub usernames listed in `ADMIN_GITHUB_LOGINS`.
+
+1. Create a GitHub OAuth app (GitHub → Settings → Developer settings → OAuth Apps). Callback URL:
+   `https://<your-site>/api/auth/callback/github` (and `http://localhost:3000/api/auth/callback/github` for local use).
+2. Set `GITHUB_ID`, `GITHUB_SECRET`, `NEXTAUTH_SECRET` (`openssl rand -base64 32`) and `NEXTAUTH_URL`.
+
+Every admin action is a Server Action that re-checks the session before calling the backend with
+`FEED_ADMIN_TOKEN`. The token never reaches the browser.
+
+## Deploy (Vercel)
+
+Import the repo in Vercel and set **Root Directory** to `frontend`. Add the variables from `.env.example`.
+Vercel builds and deploys every push. Preview deployments work too, but they need their own OAuth callback URL if you want to sign in on them.
+
+## Personal content to finish
+
+- `src/lib/profile.ts`: fill in `experience` from LinkedIn. The section stays hidden while the list is empty.
+- Add a photo at `public/images/profile.jpg` and set `avatar`. Initials are shown until then.
+- Add `public/resume.pdf` and set `resume` to show a Resume button.

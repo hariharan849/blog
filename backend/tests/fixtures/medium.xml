@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0">
+  <channel>
+    <title><![CDATA[Stories by Jane Doe on Medium]]></title>
+    <link>https://medium.com/@janedoe?source=rss-abc</link>
+    <item>
+      <title><![CDATA[Agents that actually ship]]></title>
+      <link>https://medium.com/@janedoe/agents-that-ship-123abc?source=rss-abc------2</link>
+      <guid isPermaLink="false">https://medium.com/p/123abc</guid>
+      <dc:creator><![CDATA[Jane Doe]]></dc:creator>
+      <pubDate>Tue, 10 Nov 2026 18:30:00 GMT</pubDate>
+      <content:encoded><![CDATA[<figure><img src="https://cdn-images.medium.com/max/1024/a.png"></figure><p>Most agent demos never reach production. Here&#39;s <b>what changes</b> when they do.</p>]]></content:encoded>
+    </item>
+    <item>
+      <title><![CDATA[An old post]]></title>
+      <link>https://medium.com/@janedoe/old-post-999?source=rss-abc------2</link>
+      <dc:creator><![CDATA[Jane Doe]]></dc:creator>
+      <pubDate>Mon, 01 Jan 2024 10:00:00 GMT</pubDate>
+      <content:encoded><![CDATA[<p>Ancient history.</p>]]></content:encoded>
+    </item>
+  </channel>
+</rss>

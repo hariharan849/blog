@@ -1,0 +1,164 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: Daily Dose - follows Medium/Substack/RSS authors, stores new posts daily and emails a digest.
+
+Parameters:
+  ScheduleTimezone:
+    Type: String
+    Default: UTC
+    Description: IANA time zone for the 2 AM run and the digest date, e.g. Asia/Kolkata or America/New_York.
+  ScheduleCron:
+    Type: String
+    Default: "cron(0 2 * * ? *)"
+    Description: EventBridge Scheduler expression (default 02:00 every day in ScheduleTimezone).
+  DigestTo:
+    Type: String
+    Default: ""
+    Description: Comma-separated recipient emails for the digest (must be SES-verified while in the SES sandbox).
+  DigestFrom:
+    Type: String
+    Default: ""
+    Description: SES-verified sender address. Leave empty to disable email.
+  SiteUrl:
+    Type: String
+    Default: ""
+    Description: Public URL of the Next.js site (used for links in the email), e.g. https://example.com
+  RevalidateUrl:
+    Type: String
+    Default: ""
+    Description: Next.js revalidation endpoint, e.g. https://example.com/api/revalidate. Empty to skip.
+  AdminTokenParam:
+    Type: String
+    Default: /dailydose/admin-token
+    Description: SSM SecureString holding the admin API token shared with the Next.js server.
+  RevalidateSecretParam:
+    Type: String
+    Default: /dailydose/revalidate-secret
+    Description: SSM SecureString holding the secret for the Next.js revalidation endpoint.
+  LookbackHours:
+    Type: Number
+    Default: 48
+    Description: Only posts published within this many hours are picked up (prevents a new source dumping its archive).
+
+Conditions:
+  HasRevalidate: !Not [!Equals [!Ref RevalidateUrl, ""]]
+
+Globals:
+  Function:
+    Runtime: python3.12
+    Architectures: [arm64]
+    CodeUri: src/
+    MemorySize: 256
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref Table
+        TIMEZONE: !Ref ScheduleTimezone
+        LOOKBACK_HOURS: !Ref LookbackHours
+        ADMIN_TOKEN_PARAM: !Ref AdminTokenParam
+        POWERTOOLS_LOG_LEVEL: INFO
+
+Resources:
+  Table:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - { AttributeName: PK, AttributeType: S }
+        - { AttributeName: SK, AttributeType: S }
+        - { AttributeName: GSI1PK, AttributeType: S }
+        - { AttributeName: GSI1SK, AttributeType: S }
+      KeySchema:
+        - { AttributeName: PK, KeyType: HASH }
+        - { AttributeName: SK, KeyType: RANGE }
+      GlobalSecondaryIndexes:
+        - IndexName: GSI1
+          KeySchema:
+            - { AttributeName: GSI1PK, KeyType: HASH }
+            - { AttributeName: GSI1SK, KeyType: RANGE }
+          Projection: { ProjectionType: ALL }
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  IngestFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dailydose.ingest.handler
+      Timeout: 300
+      MemorySize: 512
+      Environment:
+        Variables:
+          DIGEST_TO: !Ref DigestTo
+          DIGEST_FROM: !Ref DigestFrom
+          SITE_URL: !Ref SiteUrl
+          REVALIDATE_URL: !Ref RevalidateUrl
+          REVALIDATE_SECRET_PARAM: !If [HasRevalidate, !Ref RevalidateSecretParam, ""]
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref Table }
+        - Statement:
+            - Effect: Allow
+              Action: [ses:SendEmail]
+              Resource: "*"
+            - Effect: Allow
+              Action: [ssm:GetParameter]
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${RevalidateSecretParam}"
+      Events:
+        Daily:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: !Ref ScheduleCron
+            ScheduleExpressionTimezone: !Ref ScheduleTimezone
+            RetryPolicy:
+              MaximumRetryAttempts: 2
+
+  IngestErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Daily Dose ingest Lambda failed
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: !Ref IngestFunction }]
+      Statistic: Sum
+      Period: 86400
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  ApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dailydose.api.handler
+      Timeout: 20
+      Environment:
+        Variables:
+          INGEST_FUNCTION_NAME: !Ref IngestFunction
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref Table }
+        - LambdaInvokePolicy: { FunctionName: !Ref IngestFunction }
+        - Statement:
+            - Effect: Allow
+              Action: [ssm:GetParameter]
+              Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AdminTokenParam}"
+      Events:
+        Api:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref HttpApi
+
+  HttpApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      DefaultRouteSettings:
+        ThrottlingBurstLimit: 20
+        ThrottlingRateLimit: 10
+
+Outputs:
+  ApiUrl:
+    Description: Set this as FEED_API_URL in the Next.js app
+    Value: !Sub "https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com"
+  IngestFunctionName:
+    Value: !Ref IngestFunction
+  TableName:
+    Value: !Ref Table

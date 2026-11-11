@@ -1,3 +1,5 @@
 __pycache__/
 *.py[cod]
 staticfiles/
+.pytest_cache/
+backend/.aws-sam/
