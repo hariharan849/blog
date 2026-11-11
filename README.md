@@ -50,6 +50,15 @@ This is a personal blog project built with Django. It allows users to create, ed
     python manage.py runserver
     ```
 
+## Next.js frontend
+
+A Next.js frontend lives in [`frontend/`](frontend/README.md). It talks to Django through the JSON API under `/api/`:
+
+```bash
+python manage.py runserver          # Django on :8000
+cd frontend && npm install && npm run dev   # Next.js on :3000
+```
+
 ## Usage
 
 - Access the blog at `http://127.0.0.1:8000/`
