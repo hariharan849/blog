@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { feedApi, FeedApiError } from "@/lib/feed";
 import { formatDay } from "@/lib/format";
+import { getLessons } from "@/lib/posts";
 import DailyView from "../DailyView";
 
 type Props = { params: Promise<{ day: string }> };
@@ -19,7 +20,15 @@ export default async function DayPage({ params }: Props) {
   try {
     const [feed, days] = await Promise.all([feedApi.day(day), feedApi.days(14)]);
     if (!feed.items.length) notFound();
-    return <DailyView feed={feed} recentDays={days} />;
+    const lessons = getLessons();
+    return (
+      <DailyView
+        feed={feed}
+        recentDays={days}
+        lesson={lessons.find((l) => l.date === day)}
+        lessonCount={lessons.length}
+      />
+    );
   } catch (err) {
     if (err instanceof FeedApiError && err.status === 400) notFound();
     throw err;

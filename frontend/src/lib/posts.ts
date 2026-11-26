@@ -17,6 +17,8 @@ import { marked } from "marked";
  */
 export type PostMeta = {
   slug: string;
+  /** Lessons only: the YouTube video the lesson was written from. */
+  youtubeId?: string;
   title: string;
   date: string;
   summary: string;
@@ -27,7 +29,6 @@ export type PostMeta = {
 
 export type Post = PostMeta & { html: string };
 
-const POSTS_DIR = path.join(process.cwd(), "content", "posts");
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 function toDate(value: unknown): string {
@@ -35,9 +36,9 @@ function toDate(value: unknown): string {
   return String(value ?? "").slice(0, 10);
 }
 
-function read(file: string): Post {
+function read(dir: string, file: string): Post {
   const slug = file.replace(/\.mdx?$/, "");
-  const raw = fs.readFileSync(path.join(POSTS_DIR, file), "utf8");
+  const raw = fs.readFileSync(path.join(dir, file), "utf8");
   const { data, content } = matter(raw);
   const words = content.split(/\s+/).filter(Boolean).length;
   return {
@@ -48,28 +49,48 @@ function read(file: string): Post {
     tags: Array.isArray(data.tags) ? data.tags.map((t: unknown) => String(t).toLowerCase()) : [],
     draft: Boolean(data.draft),
     readingMinutes: Math.max(1, Math.round(words / 220)),
+    ...(data.youtube_id ? { youtubeId: String(data.youtube_id) } : {}),
     html: marked.parse(content, { async: false }) as string,
   };
 }
 
-function all(): Post[] {
-  if (!fs.existsSync(POSTS_DIR)) return [];
-  const showDrafts = process.env.NODE_ENV !== "production";
-  return fs
-    .readdirSync(POSTS_DIR)
-    .filter((f) => /\.mdx?$/.test(f) && SLUG_RE.test(f.replace(/\.mdx?$/, "")))
-    .map(read)
-    .filter((p) => showDrafts || !p.draft)
-    .sort((a, b) => b.date.localeCompare(a.date));
+/** A folder of Markdown files under /content, newest first. */
+function collection(name: string) {
+  const dir = path.join(process.cwd(), "content", name);
+  const all = (): Post[] => {
+    if (!fs.existsSync(dir)) return [];
+    const showDrafts = process.env.NODE_ENV !== "production";
+    return fs
+      .readdirSync(dir)
+      .filter((f) => /\.mdx?$/.test(f) && SLUG_RE.test(f.replace(/\.mdx?$/, "")))
+      .map((f) => read(dir, f))
+      .filter((p) => showDrafts || !p.draft)
+      .sort((a, b) => b.date.localeCompare(a.date) || b.slug.localeCompare(a.slug));
+  };
+  return {
+    list: (): PostMeta[] => all().map(({ html: _html, ...meta }) => meta),
+    get: (slug: string): Post | undefined => (SLUG_RE.test(slug) ? all().find((p) => p.slug === slug) : undefined),
+  };
 }
 
+/** The owner's own writing, shown under /blog. */
+const posts = collection("posts");
+
+/**
+ * Daily lessons written from videos by lessons/make_lesson.py, shown in the
+ * Daily Dose tab (/daily/lessons). Same front matter as posts, plus youtube_id.
+ */
+const lessons = collection("lessons");
+
+export const getLessons = lessons.list;
+export const getLesson = lessons.get;
+
 export function getPosts(): PostMeta[] {
-  return all().map(({ html: _html, ...meta }) => meta);
+  return posts.list();
 }
 
 export function getPost(slug: string): Post | undefined {
-  if (!SLUG_RE.test(slug)) return undefined;
-  return all().find((p) => p.slug === slug);
+  return posts.get(slug);
 }
 
 export function getTags(): { tag: string; count: number }[] {

@@ -1,0 +1,76 @@
+name: Daily lesson
+
+# Writes one lesson a day from the next video in the lessons playlist and
+# commits it to frontend/content/lessons. The site shows it in the Daily Dose tab.
+#
+# Setup (repository Settings → Secrets and variables → Actions):
+#   secret   ANTHROPIC_API_KEY    Claude API key used to write the lesson
+#   variable LESSON_PLAYLIST_URL  an Unlisted or public YouTube playlist
+#                                 (Watch Later itself can't be read by any API)
+
+on:
+  schedule:
+    - cron: "30 0 * * *" # 06:00 IST
+  workflow_dispatch:
+    inputs:
+      videos:
+        description: "Optional: video links separated by spaces, instead of the next playlist video"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-lesson
+  cancel-in-progress: false
+
+jobs:
+  lesson:
+    runs-on: ubuntu-latest
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      LESSON_PLAYLIST_URL: ${{ vars.LESSON_PLAYLIST_URL }}
+      VIDEOS: ${{ inputs.videos }}
+    steps:
+      - name: Check setup
+        id: setup
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ] || { [ -z "$LESSON_PLAYLIST_URL" ] && [ -z "$VIDEOS" ]; }; then
+            echo "::notice::Daily lesson skipped: set the ANTHROPIC_API_KEY secret and LESSON_PLAYLIST_URL variable."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.setup.outputs.ready == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.setup.outputs.ready == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: lessons/requirements.txt
+
+      - name: Write lesson
+        if: steps.setup.outputs.ready == 'true'
+        run: |
+          pip install -r lessons/requirements.txt
+          args=()
+          for v in $VIDEOS; do args+=(--video "$v"); done
+          [ ${#args[@]} -eq 0 ] && args=(--count 1)
+          python lessons/make_lesson.py "${args[@]}"
+
+      - name: Commit lesson
+        if: steps.setup.outputs.ready == 'true'
+        run: |
+          git add frontend/content/lessons
+          if git diff --cached --quiet; then
+            echo "No new lesson today."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Daily lesson for $(date -u +%F)"
+          git push

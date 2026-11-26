@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { profile } from "@/lib/profile";
 import { projects } from "@/lib/projects";
-import { getPosts } from "@/lib/posts";
+import { getLessons, getPosts } from "@/lib/posts";
 import { feedApi, safeFeed } from "@/lib/feed";
 import { formatDay } from "@/lib/format";
 import ProjectCard from "@/components/ProjectCard";
 import PostCard from "@/components/PostCard";
 import FeedItemCard from "@/components/FeedItemCard";
+import LessonCard from "@/components/LessonCard";
 
 export const revalidate = 300;
 
@@ -14,6 +15,8 @@ export default async function HomePage() {
   const featured = projects.filter((p) => p.featured).slice(0, 6);
   const posts = getPosts().slice(0, 3);
   const today = await safeFeed(feedApi.day());
+  const lesson = getLessons()[0];
+  const picks = today?.day ? today.items.slice(0, lesson ? 2 : 3) : [];
 
   return (
     <>
@@ -48,16 +51,17 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {today?.day && today.items.length > 0 && (
+      {(lesson || picks.length > 0) && (
         <section className="section">
           <div className="section-head">
             <h2>
-              Daily Dose <span className="muted small">· {formatDay(today.day)}</span>
+              Daily Dose {today?.day && <span className="muted small">· {formatDay(today.day)}</span>}
             </h2>
-            <Link href="/daily">All {today.items.length} picks →</Link>
+            <Link href="/daily">Open the Daily Dose →</Link>
           </div>
           <div className="stack">
-            {today.items.slice(0, 3).map((item) => (
+            {lesson && <LessonCard lesson={lesson} featured />}
+            {picks.map((item) => (
               <FeedItemCard key={item.id} item={item} />
             ))}
           </div>
