@@ -1,24 +1,28 @@
 name: Daily lesson
 
-# Writes one lesson a day from the next video in the lessons playlist,
-# commits it to frontend/content/lessons (the site shows it in the Daily Dose
-# tab), then emails a short version to Daily Dose subscribers.
+# Every morning: checks the sources in lessons/sources.yml (YouTube, Substack,
+# Medium, RSS, GitHub), turns items that are new since the last run into
+# lessons, commits them to frontend/content/lessons together with
+# lessons/state.json (the site shows them in the Daily Dose tab), then emails a
+# short version to Daily Dose subscribers.
 #
 # Setup (repository Settings → Secrets and variables → Actions):
-#   secret   ANTHROPIC_API_KEY    Claude API key used to write the lesson
-#   variable LESSON_PLAYLIST_URL  an Unlisted or public YouTube playlist
-#                                 (Watch Later itself can't be read by any API)
+#   secret   ANTHROPIC_API_KEY        Claude API key used to write the lessons
+# YouTube often blocks transcript requests from GitHub's servers. Add one of:
+#   secret   YOUTUBE_PROXY_URL        http(s) proxy, ideally residential
+#   secrets  WEBSHARE_PROXY_USERNAME / WEBSHARE_PROXY_PASSWORD   Webshare residential proxy
+#   secret   YOUTUBE_COOKIES          contents of a cookies.txt from a signed-in browser
 # Emailing subscribers also needs the backend to be deployed:
-#   variable FEED_API_URL         the backend's ApiUrl output
-#   secret   FEED_ADMIN_TOKEN     same value as /dailydose/admin-token in SSM
+#   variable FEED_API_URL             the backend's ApiUrl output
+#   secret   FEED_ADMIN_TOKEN         same value as /dailydose/admin-token in SSM
 
 on:
   schedule:
     - cron: "30 0 * * *" # 06:00 IST
   workflow_dispatch:
     inputs:
-      videos:
-        description: "Optional: video links separated by spaces, instead of the next playlist video"
+      urls:
+        description: "Optional: video, repo or feed links separated by spaces, instead of the sources file"
         required: false
         default: ""
 
@@ -34,14 +38,17 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      LESSON_PLAYLIST_URL: ${{ vars.LESSON_PLAYLIST_URL }}
-      VIDEOS: ${{ inputs.videos }}
+      GITHUB_TOKEN: ${{ github.token }}
+      YOUTUBE_PROXY_URL: ${{ secrets.YOUTUBE_PROXY_URL }}
+      WEBSHARE_PROXY_USERNAME: ${{ secrets.WEBSHARE_PROXY_USERNAME }}
+      WEBSHARE_PROXY_PASSWORD: ${{ secrets.WEBSHARE_PROXY_PASSWORD }}
+      URLS: ${{ inputs.urls }}
     steps:
       - name: Check setup
         id: setup
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ] || { [ -z "$LESSON_PLAYLIST_URL" ] && [ -z "$VIDEOS" ]; }; then
-            echo "::notice::Daily lesson skipped: set the ANTHROPIC_API_KEY secret and LESSON_PLAYLIST_URL variable."
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::notice::Daily lesson skipped: set the ANTHROPIC_API_KEY secret."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
@@ -57,28 +64,33 @@ jobs:
           cache: pip
           cache-dependency-path: lessons/requirements.txt
 
-      - name: Write lesson
+      - name: Write lessons
         if: steps.setup.outputs.ready == 'true'
+        env:
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
         run: |
           pip install -r lessons/requirements.txt
+          if [ -n "$YOUTUBE_COOKIES" ]; then
+            printf '%s\n' "$YOUTUBE_COOKIES" > "$RUNNER_TEMP/cookies.txt"
+            export YOUTUBE_COOKIES_FILE="$RUNNER_TEMP/cookies.txt"
+          fi
           args=()
-          for v in $VIDEOS; do args+=(--video "$v"); done
-          [ ${#args[@]} -eq 0 ] && args=(--count 1)
+          for u in $URLS; do args+=(--url "$u"); done
           python lessons/make_lesson.py "${args[@]}"
 
-      - name: Commit lesson
+      - name: Commit lessons
         id: commit
         if: steps.setup.outputs.ready == 'true'
         run: |
-          git add frontend/content/lessons
+          git add frontend/content/lessons lessons/state.json
           if git diff --cached --quiet; then
-            echo "No new lesson today."
+            echo "Nothing new today."
             exit 0
           fi
           echo "files=$(git diff --cached --name-only --diff-filter=A -- 'frontend/content/lessons/*.md' | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
-          git commit -m "Daily lesson for $(date -u +%F)"
+          git commit -m "Daily lessons for $(date -u +%F)"
           git push
 
       - name: Email subscribers

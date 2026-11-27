@@ -1,0 +1,33 @@
+# Sources for the daily lessons (see lessons/connectors.py).
+#
+# Each morning the workflow checks every source, finds items that are new
+# since the last run and turns up to `max_per_run` of them into lessons.
+# Nothing is published twice. Items left over wait for the next run.
+#
+# type: youtube   a video, a playlist (/playlist?list=...) or a channel (/@name)
+# type: substack  a Substack name or URL
+# type: medium    a Medium @username or URL
+# type: rss       any RSS / Atom feed URL
+# type: github    a GitHub user/org (each new repo) or one repository;
+#                 these become architecture write-ups
+#
+# backfill: true/false decides whether items that already exist when you add a
+# source become lessons. Default: yes for single videos, playlists and single
+# repos; no for channels, feeds and GitHub users (only new posts from then on).
+
+settings:
+  max_per_run: 3
+
+sources:
+  - type: youtube
+    url: https://www.youtube.com/watch?v=nKjPBAw_N_0
+
+  # Examples:
+  # - type: youtube
+  #   url: https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxx
+  # - type: substack
+  #   url: newsletter-name
+  # - type: medium
+  #   url: "@username"
+  # - type: github
+  #   url: https://github.com/some-org
