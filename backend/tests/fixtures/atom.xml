@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Example AI Lab Blog</title>
+  <link href="https://lab.example.com/" rel="alternate"/>
+  <author><name>Example Lab</name></author>
+  <entry>
+    <title>Long-context evals, revisited</title>
+    <link href="https://lab.example.com/posts/long-context?utm_source=feed" rel="alternate"/>
+    <published>2026-11-10T09:00:00Z</published>
+    <summary>We re-ran our needle-in-a-haystack suite at 1M tokens.</summary>
+  </entry>
+</feed>

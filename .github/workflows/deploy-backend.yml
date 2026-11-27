@@ -1,0 +1,48 @@
+name: Deploy backend
+
+# Deploys /backend with AWS SAM using GitHub OIDC (no long-lived AWS keys).
+# Does nothing until the repository variable AWS_ROLE_ARN is set. See backend/README.md.
+on:
+  push:
+    branches: [main]
+    paths: ["backend/**", ".github/workflows/deploy-backend.yml"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: ${{ vars.AWS_ROLE_ARN != '' }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt && python -m pytest -q
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - run: sam build --use-container=false
+      - run: >-
+          sam deploy --no-confirm-changeset --no-fail-on-empty-changeset
+          --region "${{ vars.AWS_REGION }}"
+          --parameter-overrides
+          ScheduleTimezone="${{ vars.SCHEDULE_TIMEZONE || 'UTC' }}"
+          DigestTo="${{ vars.DIGEST_TO }}"
+          DigestFrom="${{ vars.DIGEST_FROM }}"
+          SiteUrl="${{ vars.SITE_URL }}"
+          RevalidateUrl="${{ vars.SITE_URL && format('{0}/api/revalidate', vars.SITE_URL) || '' }}"
