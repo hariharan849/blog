@@ -26,6 +26,8 @@ export type Profile = {
    * the Experience section is hidden while this list is empty.
    */
   experience: Experience[];
+  /** Medium username (without @); their articles fill the Articles tab. */
+  medium: string;
   links: { label: string; href: string }[];
 };
 
@@ -61,9 +63,11 @@ export const profile: Profile = {
     { group: "Earlier: VFX", items: ["Nuke", "Silhouette", "Unreal Engine", "Pipeline development"] },
   ],
   experience: [],
+  medium: "hari.haran849",
   links: [
     { label: "GitHub", href: "https://github.com/hariharan849" },
     { label: "LinkedIn", href: "https://www.linkedin.com/in/hariharan-manoharan-6b059958/" },
+    { label: "Medium", href: "https://medium.com/@hari.haran849" },
     { label: "Kaggle", href: "https://www.kaggle.com/hariharan849" },
   ],
 };
