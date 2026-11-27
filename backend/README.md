@@ -32,11 +32,13 @@ HTTP API ──► ApiFunction ──► DynamoDB
 
 ```bash
 cd backend
-python -m venv .venv && . .venv/bin/activate
-pip install -r requirements-dev.txt
-python -m pytest -q
-python scripts/local_api.py          # http://127.0.0.1:8787, admin token "dev-token"
+uv sync                              # creates .venv from uv.lock
+uv run pytest -q
+uv run scripts/local_api.py          # http://127.0.0.1:8787, admin token "dev-token"
 ```
+
+Dependencies live in `pyproject.toml` / `uv.lock`. `sam build` still reads `src/requirements.txt`, so after changing runtime dependencies run
+`uv export --no-dev --no-hashes --no-header --no-emit-project -o src/requirements.txt` (CI fails if they drift).
 
 Point the frontend at it with `FEED_API_URL=http://127.0.0.1:8787` and `FEED_ADMIN_TOKEN=dev-token`.
 Locally, **Run now** in /admin runs the job synchronously.

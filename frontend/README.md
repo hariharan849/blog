@@ -16,7 +16,7 @@ Next.js 15 (App Router, TypeScript). The backend for the Daily Dose lives in [`/
 
 ```bash
 # terminal 1: fake backend (no AWS needed)
-cd backend && pip install -r requirements-dev.txt && python scripts/local_api.py
+cd backend && uv sync && uv run scripts/local_api.py
 
 # terminal 2
 cd frontend
@@ -56,8 +56,26 @@ Every admin action is a Server Action that re-checks the session before calling 
 
 ## Deploy (Vercel)
 
-Import the repo in Vercel and set **Root Directory** to `frontend`. Add the variables from `.env.example`.
-Vercel builds and deploys every push. Preview deployments work too, but they need their own OAuth callback URL if you want to sign in on them.
+Import the repo in Vercel as **one Next.js project** with **Root Directory** `frontend`. If Vercel offers a
+multi-service setup (it spots the Python folders), don't use it: `backend/` deploys to AWS with SAM and
+`lessons/` runs in GitHub Actions. `frontend/vercel.json` skips a build when a push changes nothing under
+`frontend/` (new lessons land in `frontend/content/lessons`, so they still redeploy).
+
+Environment variables (Production):
+
+| Variable | When | Value |
+|---|---|---|
+| `NEXT_PUBLIC_SITE_URL` | now | the site URL, e.g. `https://<project>.vercel.app` |
+| `GITHUB_ID`, `GITHUB_SECRET` | now, for /admin | GitHub OAuth app (see above) |
+| `NEXTAUTH_SECRET` | now, for /admin | `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | now, for /admin | same as `NEXT_PUBLIC_SITE_URL` |
+| `ADMIN_GITHUB_LOGINS` | now, for /admin | `hariharan849` |
+| `FEED_API_URL` | after the backend deploy | the SAM `ApiUrl` output |
+| `FEED_ADMIN_TOKEN` | after the backend deploy | SSM `/dailydose/admin-token` |
+| `REVALIDATE_SECRET` | after the backend deploy | SSM `/dailydose/revalidate-secret` |
+
+Without the backend the site still works: lessons and posts are Markdown, and the subscribe form says
+"Email subscriptions open soon." Preview deployments need their own OAuth callback URL if you want to sign in on them.
 
 ## Personal content to finish
 

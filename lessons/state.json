@@ -1,0 +1,91 @@
+{
+  "items": {
+    "web:https://www.theneuralmaze.com/p/a-practical-guide-to-context-compaction": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/ai-system-design-a-new-podcast-and": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/big-things-are-coming-to-the-neural": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/durable-harnesses-for-graph-powered": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/durable-harnesses-for-graph-powered-30e": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/durable-research-agents-in-production": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/durable-research-agents-in-production-487": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/error-analysis-for-agent-products": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/error-analysis-for-durable-agents": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/knowledge-graphs-for-production-rag": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/knowledge-graphs-for-production-rag-e7d": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/nvidia-gtc-berlin-2026-explained": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/nvidia-gtc-berlin-2026-explained-897": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/one-free-course-to-learn-durable": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "file": "2026-11-28-from-demo-agent-to-production-system-durable-pipelines.md",
+      "status": "published",
+      "title": "One free course to learn Durable Agents, Knowledge Graphs and AI Evals"
+    },
+    "web:https://www.theneuralmaze.com/p/temporal-versioning-for-production": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/temporal-versioning-for-production-dc4": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/the-ai-engineers-guide-to-scaling": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/the-ai-engineers-guide-to-scaling-755": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/the-terraform-guide-for-ai-engineers": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    },
+    "web:https://www.theneuralmaze.com/p/were-building-a-substack-brain": {
+      "at": "2026-11-27T19:45:39+00:00",
+      "status": "baseline"
+    }
+  },
+  "sources": {
+    "substack:substack.com/@migueloteropedrido": {
+      "added_at": "2026-11-27T19:45:39+00:00"
+    }
+  }
+}

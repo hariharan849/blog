@@ -35,6 +35,7 @@ class FeedEntry:
     published_at: datetime | None
     excerpt: str
     image: str | None
+    content: str = ""  # full body markup when the feed carries it (Substack, Medium)
 
 
 @dataclass
@@ -198,6 +199,7 @@ def _parse_rss(channel) -> Feed:
                 published_at=_parse_date(_text(item, "pubDate") or _text(item, "{http://purl.org/dc/elements/1.1/}date")),
                 excerpt=clean_text(_text(item, "description") or body),
                 image=image or _first_img(body),
+                content=body,
             )
         )
     return Feed(title=clean_text(feed_author, 200), site_url=_text(channel, "link"), entries=entries)
@@ -227,6 +229,7 @@ def _parse_atom(root) -> Feed:
                 published_at=_parse_date(_text(entry, f"{ATOM}published") or _text(entry, f"{ATOM}updated")),
                 excerpt=clean_text(_text(entry, f"{ATOM}summary") or body),
                 image=_first_img(body),
+                content=body,
             )
         )
     return Feed(title=clean_text(_text(root, f"{ATOM}title"), 200), site_url=_atom_link(root), entries=entries)

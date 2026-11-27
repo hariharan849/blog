@@ -1,20 +1,22 @@
-"""Turn YouTube videos into readable lessons and save them as blog posts.
+"""Turn new videos, articles and repositories into lessons on the blog.
 
-Each lesson is a Markdown file in frontend/content/lessons with a
-`youtube_id` in its front matter. The site shows lessons in the Daily Dose tab
-(/daily and /daily/lessons), and the next run uses youtube_id to skip videos
-that already have a lesson.
+Every morning the daily workflow runs this with no arguments. It reads the
+sources in lessons/sources.yml (YouTube, Substack, Medium, RSS, GitHub), finds
+items that are new since the last run, extracts their text (see
+connectors.py), has Claude write each one up, and saves the lessons as
+Markdown in frontend/content/lessons. The site shows them in the Daily Dose tab.
+
+Nothing is published twice: each lesson's front matter carries a `source_id`
+(youtube:<id>, web:<url> or github:<owner/repo>), and lessons/state.json
+remembers which items were already there when a source was first added and
+which ones failed, so a run only picks up what is genuinely new.
 
 Usage:
-    # Next unwritten video(s) from a playlist (what the daily workflow runs)
-    python lessons/make_lesson.py --playlist "https://www.youtube.com/playlist?list=..." --count 1
+    python lessons/make_lesson.py                     # the daily run
+    python lessons/make_lesson.py --dry-run           # list what's new, write nothing
+    python lessons/make_lesson.py --url https://youtu.be/abc123 --url https://github.com/owner/repo
 
-    # Specific videos
-    python lessons/make_lesson.py --video https://youtu.be/abc123 --video https://youtu.be/def456
-
-YouTube's Watch Later list cannot be read by any API, so keep the videos you
-want turned into lessons in an Unlisted (or public) playlist instead.
-Needs ANTHROPIC_API_KEY in the environment.
+Needs ANTHROPIC_API_KEY (except with --dry-run).
 """
 
 from __future__ import annotations
@@ -25,28 +27,23 @@ import json
 import os
 import re
 import sys
-import urllib.parse
-import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import connectors  # noqa: E402
+from connectors import ExtractError, Item  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 POSTS_DIR = ROOT / "frontend" / "content" / "lessons"
+SOURCES_FILE = ROOT / "lessons" / "sources.yml"
+STATE_FILE = ROOT / "lessons" / "state.json"
 MODEL = os.environ.get("LESSON_MODEL", "claude-opus-5-5")
+MAX_ATTEMPTS = 3  # transient failures (blocked, network) before an item is given up on
 
-VIDEO_ID_RE = re.compile(r"^[A-Za-z0-9_-]{11}$")
+SOURCE_ID_FM_RE = re.compile(r"^source_id:\s*\"?([^\"\n]+)\"?\s*$", re.MULTILINE)
 YOUTUBE_ID_FM_RE = re.compile(r"^youtube_id:\s*['\"]?([A-Za-z0-9_-]{11})", re.MULTILINE)
-
-
-@dataclass
-class Video:
-    id: str
-    title: str
-    channel: str
-
-    @property
-    def url(self) -> str:
-        return f"https://www.youtube.com/watch?v={self.id}"
 
 
 @dataclass
@@ -57,91 +54,9 @@ class Lesson:
     body: str
 
 
-# ---------------------------------------------------------------- YouTube
-
-
-def video_id(url_or_id: str) -> str:
-    """Accept a bare id or any common YouTube URL and return the 11-char id."""
-    s = url_or_id.strip()
-    if VIDEO_ID_RE.match(s):
-        return s
-    u = urllib.parse.urlparse(s)
-    host = (u.hostname or "").lower()
-    if host == "youtu.be":
-        cand = u.path.lstrip("/").split("/")[0]
-    elif host.endswith("youtube.com"):
-        q = urllib.parse.parse_qs(u.query)
-        if "v" in q:
-            cand = q["v"][0]
-        else:
-            parts = [p for p in u.path.split("/") if p]
-            cand = parts[1] if len(parts) >= 2 and parts[0] in ("shorts", "embed", "live", "v") else ""
-    else:
-        cand = ""
-    if not VIDEO_ID_RE.match(cand):
-        raise ValueError(f"Not a YouTube video link: {url_or_id}")
-    return cand
-
-
-def video_info(vid: str) -> Video:
-    """Title and channel from YouTube's oEmbed endpoint (no API key needed)."""
-    url = "https://www.youtube.com/oembed?format=json&url=" + urllib.parse.quote(
-        f"https://www.youtube.com/watch?v={vid}", safe=""
-    )
-    try:
-        with urllib.request.urlopen(url, timeout=20) as r:
-            data = json.load(r)
-        return Video(vid, data.get("title", vid), data.get("author_name", ""))
-    except Exception:  # noqa: BLE001 - metadata is nice to have, not required
-        return Video(vid, vid, "")
-
-
-def playlist_ids(playlist_url: str) -> list[str]:
-    """Video ids in a public or unlisted playlist, in playlist order."""
-    import yt_dlp
-
-    opts = {"extract_flat": True, "quiet": True, "skip_download": True}
-    with yt_dlp.YoutubeDL(opts) as ydl:
-        info = ydl.extract_info(playlist_url, download=False)
-    ids = [e.get("id") for e in info.get("entries") or [] if e]
-    return [i for i in ids if i and VIDEO_ID_RE.match(i)]
-
-
-def transcript(vid: str) -> str:
-    """Transcript text, in English where YouTube has or can translate to it."""
-    from youtube_transcript_api import YouTubeTranscriptApi
-
-    api = YouTubeTranscriptApi()
-    listing = api.list(vid)
-    try:
-        chosen = listing.find_transcript(["en", "en-US", "en-GB"])
-    except Exception:  # noqa: BLE001
-        chosen = next(iter(listing))
-        if chosen.is_translatable and not chosen.language_code.startswith("en"):
-            try:
-                chosen = chosen.translate("en")
-            except Exception:  # noqa: BLE001 - fall back to the original language
-                pass
-    fetched = chosen.fetch()
-    text = " ".join(s.text.replace("\n", " ") for s in fetched.snippets)
-    return re.sub(r"\s+", " ", text).strip()
-
-
 # ---------------------------------------------------------------- Claude
 
-SYSTEM = """You turn video transcripts into lessons for a busy reader who will \
-read instead of watching. Write in clear, plain English, even if the transcript \
-is in another language.
-
-Write the lesson as flowing paragraphs, the way a good teacher would explain the \
-material in writing. Keep every idea, example, number and recommendation that \
-matters; drop filler, sponsor reads, greetings and calls to subscribe. Use a few \
-`##` section headings to break up a long lesson. Use a bulleted list only where \
-the video itself walks through a list of steps or items. Do not mention "the \
-transcript"; you may refer to "the video" or the speaker by name. Do not invent \
-facts the video does not contain. End with a short `## Key takeaways` section of \
-3 to 5 bullets.
-
+FORMAT = """
 Reply in exactly this format and nothing else:
 
 TITLE: <a clear lesson title, not clickbait>
@@ -149,6 +64,44 @@ SUMMARY: <one sentence saying what the reader will learn>
 TAGS: <2 to 4 lowercase topic tags, comma separated>
 ---
 <the lesson in Markdown, without a top-level # heading>"""
+
+SYSTEM = (
+    """You turn talks, tutorials and articles into lessons for a busy engineer \
+who will read the lesson instead of watching or reading the original. Write in \
+clear, plain English, even if the source is in another language.
+
+Write the lesson as flowing paragraphs, the way a good teacher would explain the \
+material in writing. Keep every idea, example, number and recommendation that \
+matters; drop filler, sponsor reads, greetings, newsletter plugs and calls to \
+subscribe. Use a few `##` section headings to break up a long lesson. Use a \
+bulleted list only where the source itself walks through a list of steps or \
+items. Do not mention "the transcript"; refer to "the video", "the article" or \
+the author by name. Do not invent facts the source does not contain. End with a \
+short `## Key takeaways` section of 3 to 5 bullets.
+"""
+    + FORMAT
+)
+
+SYSTEM_REPO = (
+    """You explain the architecture of software repositories to an experienced \
+engineer, from a snapshot of the repository (its file tree, README, manifests \
+and main source files). Write only about the architecture: what the system is \
+for in one or two sentences, then its main components and what each is \
+responsible for, how they talk to each other and how data flows through a \
+typical request or job, the key technologies and why they appear to be chosen, \
+where state lives, how it is built, configured and deployed, and the design \
+decisions or trade-offs worth learning from. Do not walk through files one by \
+one, do not explain installation steps, and do not review code quality.
+
+Write in flowing paragraphs with a few `##` headings. Include one small \
+```text diagram of the main components and the arrows between them. Name real \
+directories and modules so the reader can find them. Only describe what the \
+snapshot shows; if something important is not visible (for example, how it is \
+deployed), say so in one sentence instead of guessing. End with a short \
+`## Key takeaways` section of 3 to 5 bullets about the architecture.
+"""
+    + FORMAT
+)
 
 
 def parse_lesson(text: str) -> Lesson:
@@ -171,31 +124,37 @@ def parse_lesson(text: str) -> Lesson:
     )
 
 
-def write_lesson(video: Video, text: str) -> Lesson:
+def prompt_for(item: Item, text: str) -> tuple[str, str]:
+    """(system prompt, user message) for an item."""
+    if item.kind == "repo":
+        return SYSTEM_REPO, f"<repository_snapshot>\n{text}\n</repository_snapshot>"
+    label = {"video": "Video", "article": "Article"}[item.kind]
+    tag = "transcript" if item.kind == "video" else "article"
+    head = f"{label} title: {item.title}\nBy: {item.author or 'unknown'}\nURL: {item.url}"
+    return SYSTEM, f"{head}\n\n<{tag}>\n{text}\n</{tag}>"
+
+
+def write_lesson(item: Item, text: str) -> Lesson:
     import anthropic
 
+    system, user = prompt_for(item, text)
     client = anthropic.Anthropic()
-    prompt = (
-        f"Video title: {video.title}\nChannel: {video.channel or 'unknown'}\n\n"
-        f"<transcript>\n{text}\n</transcript>"
-    )
     with client.beta.messages.stream(
         model=MODEL,
         max_tokens=64000,
-        system=SYSTEM,
+        system=system,
         thinking={"type": "adaptive"},
         output_config={"effort": "high"},
         betas=["server-side-fallback-2026-07-01"],
         fallbacks="default",
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": user}],
     ) as stream:
         msg = stream.get_final_message()
     if msg.stop_reason == "refusal":
-        raise RuntimeError(f"Claude declined to write a lesson for {video.url}")
+        raise RuntimeError(f"Claude declined to write a lesson for {item.url}")
     if msg.stop_reason == "max_tokens":
-        raise RuntimeError(f"Lesson for {video.url} was cut off")
-    out = "".join(b.text for b in msg.content if b.type == "text")
-    return parse_lesson(out)
+        raise RuntimeError(f"Lesson for {item.url} was cut off")
+    return parse_lesson("".join(b.text for b in msg.content if b.type == "text"))
 
 
 # ---------------------------------------------------------------- Posts
@@ -203,7 +162,10 @@ def write_lesson(video: Video, text: str) -> Lesson:
 
 def slugify(s: str, limit: int = 60) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
-    return slug[:limit].rstrip("-") or "lesson"
+    if len(slug) > limit:
+        cut = slug[: limit + 1]
+        slug = cut.rsplit("-", 1)[0] if "-" in cut else slug[:limit]  # end on a whole word
+    return slug.strip("-") or "lesson"
 
 
 def yaml_str(s: str) -> str:
@@ -211,31 +173,46 @@ def yaml_str(s: str) -> str:
 
 
 def done_ids(posts_dir: Path = POSTS_DIR) -> set[str]:
+    """source_ids of every published lesson (older lessons only have youtube_id)."""
     ids: set[str] = set()
     if posts_dir.exists():
         for f in posts_dir.glob("*.md"):
-            m = YOUTUBE_ID_FM_RE.search(f.read_text(encoding="utf8"))
-            if m:
-                ids.add(m.group(1))
+            text = f.read_text(encoding="utf8")
+            if m := SOURCE_ID_FM_RE.search(text):
+                ids.add(m.group(1).strip())
+            if m := YOUTUBE_ID_FM_RE.search(text):
+                ids.add(f"youtube:{m.group(1)}")
     return ids
 
 
-def render_post(video: Video, lesson: Lesson, date: dt.date) -> str:
-    source = f"[{video.title}]({video.url})" + (f" by {video.channel}" if video.channel else "")
-    return (
-        "---\n"
-        f"title: {yaml_str(lesson.title)}\n"
-        f"date: {date.isoformat()}\n"
-        f"summary: {yaml_str(lesson.summary)}\n"
-        f"tags: [{', '.join(lesson.tags)}]\n"
-        f"youtube_id: {video.id}\n"
-        "---\n\n"
-        f"*Lesson from the video {source}.*\n\n"
-        f"{lesson.body}\n"
-    )
+def credit_line(item: Item) -> str:
+    link = f"[{item.title}]({item.url})"
+    by = f" by {item.author}" if item.author else ""
+    if item.kind == "video":
+        return f"*Lesson from the video {link}{by}.*"
+    if item.kind == "repo":
+        return f"*Architecture notes on the GitHub repository {link}.*"
+    return f"*Lesson from the article {link}{by}.*"
 
 
-def save_post(video: Video, lesson: Lesson, date: dt.date, posts_dir: Path = POSTS_DIR) -> Path:
+def render_post(item: Item, lesson: Lesson, date: dt.date) -> str:
+    lines = [
+        "---",
+        f"title: {yaml_str(lesson.title)}",
+        f"date: {date.isoformat()}",
+        f"summary: {yaml_str(lesson.summary)}",
+        f"tags: [{', '.join(lesson.tags)}]",
+        f"source_id: {yaml_str(item.key)}",
+        f"source_url: {yaml_str(item.url)}",
+        f"source_type: {item.kind}",
+    ]
+    if item.video_id:
+        lines.append(f"youtube_id: {item.video_id}")
+    lines += ["---", "", credit_line(item), "", lesson.body, ""]
+    return "\n".join(lines)
+
+
+def save_post(item: Item, lesson: Lesson, date: dt.date, posts_dir: Path = POSTS_DIR) -> Path:
     posts_dir.mkdir(parents=True, exist_ok=True)
     base = f"{date.isoformat()}-{slugify(lesson.title)}"
     path = posts_dir / f"{base}.md"
@@ -243,53 +220,174 @@ def save_post(video: Video, lesson: Lesson, date: dt.date, posts_dir: Path = POS
     while path.exists():
         path = posts_dir / f"{base}-{n}.md"
         n += 1
-    path.write_text(render_post(video, lesson, date), encoding="utf8")
+    path.write_text(render_post(item, lesson, date), encoding="utf8")
     return path
+
+
+# ---------------------------------------------------------------- Sources & state
+
+
+def load_sources(path: Path = SOURCES_FILE) -> tuple[list[dict], dict]:
+    """(sources, settings) from sources.yml."""
+    import yaml
+
+    data = yaml.safe_load(path.read_text(encoding="utf8")) if path.exists() else {}
+    data = data or {}
+    sources = []
+    for s in data.get("sources") or []:
+        if not isinstance(s, dict) or not s.get("type") or not s.get("url"):
+            raise ValueError(f"Each source needs a type and a url: {s!r}")
+        sources.append({**s, "type": str(s["type"]).lower(), "url": str(s["url"]).strip()})
+    return sources, data.get("settings") or {}
+
+
+def load_state(path: Path = STATE_FILE) -> dict:
+    state = json.loads(path.read_text(encoding="utf8")) if path.exists() else {}
+    state.setdefault("sources", {})
+    state.setdefault("items", {})
+    return state
+
+
+def save_state(state: dict, path: Path = STATE_FILE) -> None:
+    path.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf8")
+
+
+def now_iso() -> str:
+    return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+
+
+def backfills(source: dict) -> bool | int:
+    """Whether items already in a source when it's added become lessons.
+
+    `backfill: true` takes all of them, `false` none, and a number takes that
+    many of the most recent ones. Defaults: a single video or repo, and a
+    YouTube playlist (your queue), yes; channels, feeds and GitHub users, no
+    (only what's published after you add them).
+    """
+    if "backfill" in source:
+        value = source["backfill"]
+        return value if isinstance(value, int) and not isinstance(value, bool) else bool(value)
+    url = source["url"]
+    if source["type"] == "youtube":
+        return "/@" not in url and "/channel/" not in url and "/c/" not in url and "/user/" not in url
+    if source["type"] == "github":
+        return connectors._repo_slug(url)[1] is not None
+    return False
+
+
+def new_items(sources: list[dict], state: dict, done: set[str]) -> list[tuple[dict, Item]]:
+    """Items that need a lesson, oldest first per source. Records baselines in state."""
+    queue: list[tuple[dict, Item]] = []
+    seen_keys: set[str] = set()
+    for source in sources:
+        skey = connectors.source_key(source)
+        try:
+            items = connectors.discover(source)
+        except Exception as exc:  # noqa: BLE001 - one broken source shouldn't stop the run
+            print(f"! {skey}: couldn't list items ({type(exc).__name__}: {exc})", file=sys.stderr)
+            continue
+        if skey not in state["sources"]:
+            state["sources"][skey] = {"added_at": now_iso()}
+            backfill = backfills(source)
+            if backfill is not True:
+                keep = max(int(backfill), 0)  # False -> 0
+                baseline = items[: len(items) - keep] if keep else items
+                for it in baseline:
+                    state["items"].setdefault(it.key, {"status": "baseline", "at": now_iso()})
+                print(f"  {skey}: new source, {len(baseline)} existing items marked as seen")
+        for it in items:
+            record = state["items"].get(it.key, {})
+            if it.key in done or it.key in seen_keys or record.get("status") in ("baseline", "published", "skipped"):
+                continue
+            seen_keys.add(it.key)
+            queue.append((source, it))
+    return queue
+
+
+def mark(state: dict, item: Item, status: str, **extra) -> None:
+    record = state["items"].setdefault(item.key, {})
+    record.update({"status": status, "at": now_iso(), "title": item.title, **extra})
 
 
 # ---------------------------------------------------------------- CLI
 
 
+def run(
+    sources: list[dict],
+    state: dict,
+    *,
+    limit: int,
+    date: dt.date,
+    posts_dir: Path = POSTS_DIR,
+    dry_run: bool = False,
+    writer=write_lesson,
+    extractor=connectors.extract,
+) -> list[Path]:
+    queue = new_items(sources, state, done_ids(posts_dir))
+    print(f"{len(queue)} new item(s) waiting" + (f"; writing up to {limit}" if not dry_run else ""))
+    written: list[Path] = []
+    for _source, item in queue:
+        if dry_run:
+            print(f"  new: {item.key}  {item.title}")
+            continue
+        if len(written) >= limit:
+            break
+        try:
+            text = extractor(item)
+        except ExtractError as exc:
+            attempts = state["items"].get(item.key, {}).get("attempts", 0) + 1
+            give_up = exc.permanent or attempts >= MAX_ATTEMPTS
+            mark(state, item, "skipped" if give_up else "failed", reason=str(exc), attempts=attempts)
+            print(f"! {item.key}: {exc}" + (" (giving up)" if give_up else " (will retry next run)"), file=sys.stderr)
+            continue
+        lesson = writer(item, text)
+        path = save_post(item, lesson, date, posts_dir)
+        mark(state, item, "published", file=path.name)
+        written.append(path)
+        print(f"wrote {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
+    return written
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--playlist", default=os.environ.get("LESSON_PLAYLIST_URL"), help="playlist URL to take videos from")
-    p.add_argument("--video", action="append", default=[], help="video URL or id (repeatable)")
-    p.add_argument("--count", type=int, default=1, help="how many new playlist videos to turn into lessons")
+    p.add_argument("--sources", type=Path, default=SOURCES_FILE, help="sources file (default lessons/sources.yml)")
+    p.add_argument("--url", action="append", default=[], help="a video, article feed or repo URL to do now (repeatable)")
+    p.add_argument("--limit", type=int, help="most lessons to write this run (default: settings.max_per_run or 3)")
     p.add_argument("--date", type=dt.date.fromisoformat, default=dt.date.today(), help="post date (YYYY-MM-DD)")
     p.add_argument("--posts-dir", type=Path, default=POSTS_DIR)
+    p.add_argument("--state", type=Path, default=STATE_FILE)
+    p.add_argument("--dry-run", action="store_true", help="list new items without extracting or writing")
     args = p.parse_args(argv)
 
-    done = done_ids(args.posts_dir)
-    if args.video:
-        queue = [video_id(v) for v in args.video]
-    elif args.playlist:
-        queue = [v for v in playlist_ids(args.playlist) if v not in done]
+    if args.url:
+        sources = [{"type": guess_type(u), "url": u, "backfill": True} for u in args.url]
+        settings: dict = {}
     else:
-        p.error("give --video or --playlist (or set LESSON_PLAYLIST_URL)")
+        sources, settings = load_sources(args.sources)
+        if not sources:
+            print(f"No sources in {args.sources}.")
+            return 0
+    state = load_state(args.state)
+    limit = args.limit or int(settings.get("max_per_run", 3))
+    written = run(sources, state, limit=limit, date=args.date, posts_dir=args.posts_dir, dry_run=args.dry_run)
+    if not args.dry_run:
+        save_state(state, args.state)
+    if not written and not args.dry_run:
+        print("No new lessons this run.")
+    return 0
 
-    written, failed = 0, 0
-    for vid in queue:
-        if written >= (len(queue) if args.video else args.count):
-            break
-        if vid in done:
-            print(f"skip {vid}: already a lesson")
-            continue
-        video = video_info(vid)
-        try:
-            text = transcript(vid)
-        except Exception as e:  # noqa: BLE001 - videos without captions are skipped
-            print(f"skip {vid} ({video.title}): no transcript ({type(e).__name__})", file=sys.stderr)
-            failed += 1
-            continue
-        lesson = write_lesson(video, text)
-        path = save_post(video, lesson, args.date, args.posts_dir)
-        done.add(vid)
-        written += 1
-        print(f"wrote {path.relative_to(ROOT) if path.is_relative_to(ROOT) else path}")
 
-    if not written:
-        print("no new lessons written" + (f" ({failed} videos had no transcript)" if failed else ""))
-    return 0 if written or not failed else 1
+def guess_type(url: str) -> str:
+    host = re.sub(r"^https?://(www\.|m\.)?", "", url.lower()).split("/")[0]
+    if host in ("youtube.com", "youtu.be") or connectors.VIDEO_ID_RE.match(url):
+        return "youtube"
+    if host == "github.com":
+        return "github"
+    if "medium.com" in host or url.startswith("@"):
+        return "medium"
+    if host.endswith("substack.com"):
+        return "substack"
+    return "rss"
 
 
 if __name__ == "__main__":

@@ -1,0 +1,19 @@
+[project]
+name = "daily-lessons"
+version = "0.1.0"
+description = "Turns new items from followed sources into Daily Dose lessons"
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=0.80",
+    "youtube-transcript-api>=1.2",
+    "yt-dlp>=2025.1.1",
+    "trafilatura>=2.0",
+    "defusedxml>=0.7",
+    "PyYAML>=6.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[tool.uv]
+package = false

@@ -1,0 +1,24 @@
+[project]
+name = "dailydose-backend"
+version = "0.1.0"
+description = "Daily Dose feed ingest, subscriptions and email (AWS SAM)"
+requires-python = ">=3.12"
+# Runtime dependencies of the Lambda functions. After changing them run
+#   uv export --no-dev --no-hashes --no-header --no-emit-project -o src/requirements.txt
+# because `sam build` reads src/requirements.txt (CI checks they match).
+dependencies = [
+    "aws-lambda-powertools==3.40.0",
+    "defusedxml==0.7.1",
+    "tzdata==2025.2",
+]
+
+[dependency-groups]
+dev = [
+    "boto3",
+    "moto[dynamodb,ses,ssm,awslambda]==5.2.5",
+    "pytest",
+    "cfn-lint",
+]
+
+[tool.uv]
+package = false
