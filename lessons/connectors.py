@@ -29,6 +29,7 @@ import json
 import os
 import re
 import sys
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass, field
@@ -77,7 +78,9 @@ def discover(source: dict) -> list[Item]:
         return feed_items(kind, source["url"])
     if kind == "github":
         return github_items(source["url"])
-    raise ValueError(f"Unknown source type {kind!r} (use youtube, substack, medium or rss)")
+    if kind == "article":
+        return [article_item(source["url"])]
+    raise ValueError(f"Unknown source type {kind!r} (use youtube, substack, medium, rss, github or article)")
 
 
 def extract(item: Item) -> str:
@@ -322,15 +325,77 @@ def html_to_text(markup: str) -> str:
     return "\n\n".join(" ".join(p.split()) for p in text.split("\n\n") if p.strip())
 
 
+def canonical_url(url: str) -> str:
+    """The URL without query string or fragment (Medium adds ?source=... tracking)."""
+    parts = urllib.parse.urlsplit(url.strip())
+    return urllib.parse.urlunsplit((parts.scheme or "https", parts.netloc.lower(), parts.path.rstrip("/") or "/", "", ""))
+
+
+def article_item(url: str) -> Item:
+    """One article or post page (a link from the reading list). Title and text are filled in at extract time."""
+    url = canonical_url(url if "://" in url else f"https://{url}")
+    return Item(key=f"web:{url}", kind="article", url=url, title=url)
+
+
+MEDIUM_POST_RE = re.compile(r"medium\.com/@(?P<user>[\w.-]+)/(?:[\w-]*-)?(?P<id>[0-9a-f]{8,12})$")
+
+
+def _medium_from_feed(item: Item) -> bool:
+    """Medium blocks most page fetches, so look the post up in its author's RSS feed (newest 10)."""
+    m = MEDIUM_POST_RE.search(item.url)
+    if not m:
+        return False
+    post_id = m.group("id")
+    try:
+        entries = feeds.load(f"https://medium.com/feed/@{m.group('user')}").entries
+    except Exception:  # noqa: BLE001
+        return False
+    for e in entries:
+        if post_id in e.url:
+            item.title, item.author, item.content = e.title, e.author, e.content
+            return True
+    return False
+
+
+def _get_page(url: str, timeout: float = 20.0) -> str:
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (compatible; daily-dose-lessons/1.0)"})
+    with urllib.request.urlopen(req, timeout=timeout) as res:  # noqa: S310 - http(s) links only
+        charset = res.headers.get_content_charset() or "utf-8"
+        return res.read(5_000_000).decode(charset, errors="replace")
+
+
+def _fill_article(item: Item) -> None:
+    """Title, author and body for an article that came from a link rather than a feed."""
+    if _medium_from_feed(item):
+        return
+    import trafilatura
+
+    if not item.url.startswith(("https://", "http://")):
+        raise ExtractError("not a web link", permanent=True)
+    try:
+        page = _get_page(item.url)
+    except urllib.error.HTTPError as exc:
+        raise ExtractError(f"couldn't fetch the article (HTTP {exc.code})", permanent=exc.code in (401, 403, 404, 410)) from exc
+    except Exception as exc:  # noqa: BLE001
+        raise ExtractError(f"couldn't fetch the article ({type(exc).__name__})") from exc
+    meta = trafilatura.extract_metadata(page)
+    if meta is not None:
+        item.title = meta.title or item.title
+        item.author = meta.author or item.author
+    item.content = trafilatura.extract(page, include_comments=False, output_format="html") or ""
+
+
 def article_text(item: Item) -> str:
+    if not item.content and item.title == item.url:
+        _fill_article(item)
     text = html_to_text(item.content) if item.content else ""
     if len(text.split()) >= MIN_ARTICLE_WORDS:
         return text
     try:
         import trafilatura
 
-        page = trafilatura.fetch_url(item.url)
-        full = trafilatura.extract(page or "", include_comments=False) or ""
+        page = _get_page(item.url)
+        full = trafilatura.extract(page, include_comments=False) or ""
     except Exception as exc:  # noqa: BLE001
         raise ExtractError(f"couldn't fetch the article ({type(exc).__name__})") from exc
     if len(full.split()) > len(text.split()):

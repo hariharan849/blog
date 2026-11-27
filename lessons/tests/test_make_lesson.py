@@ -240,7 +240,7 @@ def test_load_sources(tmp_path):
 def test_repo_default_sources_file_is_valid():
     sources, settings = ml.load_sources()
     assert int(settings["max_per_run"]) >= 1
-    assert all(s["type"] in ("youtube", "substack", "medium", "rss", "github") for s in sources)
+    assert all(s["type"] in ("youtube", "substack", "medium", "rss", "github", "article") for s in sources)
 
 
 @pytest.mark.parametrize(
@@ -251,6 +251,13 @@ def test_repo_default_sources_file_is_valid():
         ("@someone", "medium"),
         ("https://x.substack.com", "substack"),
         ("https://blog.example.com/feed.xml", "rss"),
+        ("https://example.com/rss", "rss"),
+        ("https://medium.com/@someone", "medium"),
+        ("https://medium.com/@someone/a-post-573ec861e796?source=rss", "article"),
+        ("https://x.substack.com/p/a-post", "article"),
+        ("https://substack.com/@someone", "substack"),
+        ("https://www.theneuralmaze.com/p/a-post", "article"),
+        ("https://blog.example.com/2026/01/a-post", "article"),
     ],
 )
 def test_guess_type(url, expected):
@@ -352,3 +359,53 @@ def test_announce_skips_without_backend(monkeypatch, capsys):
     monkeypatch.delenv("FEED_API_URL", raising=False)
     assert announce.main(["does-not-exist.md"]) == 0
     assert "not emailing" in capsys.readouterr().out
+
+
+# ---------------------------------------------------------------- reading list (links run on demand)
+
+ARTICLE_PAGE = (
+    "<html><head><title>Reading Item</title></head><body><article><h1>Reading Item</h1>"
+    + "<p>" + "Retrieval needs good chunking. " * 40 + "</p></article></body></html>"
+)
+
+
+def test_requested_link_is_written_even_if_its_feed_marked_it_seen(feed, tmp_path, monkeypatch):
+    sources = [{"type": "substack", "url": "notes"}]
+    state = ml.load_state(tmp_path / "s.json")
+    run(sources, state, tmp_path)
+    assert state["items"]["web:https://notes.substack.com/p/queues"]["status"] == "baseline"
+
+    monkeypatch.setattr(c, "_get_page", lambda url, timeout=20: ARTICLE_PAGE)
+    link = [{"type": "article", "url": "https://notes.substack.com/p/queues?utm_source=x", "requested": True}]
+    [path] = run(link, state, tmp_path)
+    text = path.read_text()
+    assert 'source_id: "web:https://notes.substack.com/p/queues"' in text
+    assert "*Lesson from the article [Reading Item](https://notes.substack.com/p/queues)" in text
+    assert run(link, state, tmp_path) == []  # asking again doesn't duplicate it
+    assert run(sources, state, tmp_path) == []
+
+
+def test_medium_link_is_read_from_the_authors_feed(monkeypatch):
+    xml = (FIXTURES / "substack.xml").read_text().replace(
+        "https://notes.substack.com/p/queues", "https://medium.com/@someone/queues-in-practice-573ec861e796?source=rss"
+    )
+    seen = []
+    monkeypatch.setattr(feeds, "fetch", lambda url, timeout=15: seen.append(url) or xml.encode())
+    monkeypatch.setattr(c, "MIN_ARTICLE_WORDS", 1)
+    monkeypatch.setattr(c, "_get_page", lambda *a, **k: pytest.fail("Medium pages should not be fetched"))
+    item = c.article_item("https://medium.com/@someone/queues-in-practice-573ec861e796?source=rss")
+    text = c.extract(item)
+    assert seen == ["https://medium.com/feed/@someone"]
+    assert item.title == "Queues in practice" and "QUEUE_BODY" in text
+
+
+def test_missing_page_is_skipped_for_good(monkeypatch, tmp_path):
+    import urllib.error
+
+    def gone(url, timeout=20):
+        raise urllib.error.HTTPError(url, 404, "Not Found", {}, None)
+
+    monkeypatch.setattr(c, "_get_page", gone)
+    state = ml.load_state(tmp_path / "s.json")
+    assert run([{"type": "article", "url": "https://example.com/p/gone", "requested": True}], state, tmp_path) == []
+    assert state["items"]["web:https://example.com/p/gone"]["status"] == "skipped"

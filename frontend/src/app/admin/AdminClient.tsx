@@ -3,7 +3,7 @@
 import { useActionState, useState, useTransition } from "react";
 import { signIn, signOut } from "next-auth/react";
 import type { Source } from "@/lib/feed";
-import { addSource, removeSource, runNow, toggleSource, type ActionResult } from "./actions";
+import { addSource, queueReadingList, removeSource, runNow, toggleSource, type ActionResult } from "./actions";
 
 const PLACEHOLDER = {
   medium: "@username or medium.com/@username",
@@ -120,10 +120,38 @@ export function RunNowButton() {
   const [result, setResult] = useState<ActionResult | null>(null);
   return (
     <div className="run-now">
-      <button className="button button-secondary" disabled={pending} onClick={() => start(async () => setResult(await runNow()))}>
+      <button
+        className="button button-secondary"
+        disabled={pending}
+        onClick={() => start(async () => setResult(await runNow()))}
+      >
         {pending ? "Starting…" : "Run now"}
       </button>
       <Notice result={result} />
     </div>
+  );
+}
+
+export function ReadingListForm({ disabled }: { disabled: boolean }) {
+  const [result, action, pending] = useActionState(queueReadingList, null);
+  return (
+    <form action={action} className="admin-reading-form">
+      <label>
+        Links, one per line
+        <textarea
+          name="links"
+          rows={4}
+          required
+          disabled={disabled}
+          placeholder={
+            "https://someone.substack.com/p/a-post\nhttps://medium.com/@someone/a-post-1a2b3c4d5e6f\nhttps://github.com/owner/repo"
+          }
+        />
+      </label>
+      <button type="submit" className="button" disabled={pending || disabled}>
+        {pending ? "Starting…" : "Make lessons now"}
+      </button>
+      {!pending && <Notice result={result} />}
+    </form>
   );
 }

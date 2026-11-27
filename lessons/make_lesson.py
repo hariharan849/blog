@@ -27,6 +27,7 @@ import json
 import os
 import re
 import sys
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -300,7 +301,9 @@ def new_items(sources: list[dict], state: dict, done: set[str]) -> list[tuple[di
                 print(f"  {skey}: new source, {len(baseline)} existing items marked as seen")
         for it in items:
             record = state["items"].get(it.key, {})
-            if it.key in done or it.key in seen_keys or record.get("status") in ("baseline", "published", "skipped"):
+            # A link asked for by hand (--url) may be something a feed marked as seen when it was added.
+            blocking = ("published", "skipped") if source.get("requested") else ("baseline", "published", "skipped")
+            if it.key in done or it.key in seen_keys or record.get("status") in blocking:
                 continue
             seen_keys.add(it.key)
             queue.append((source, it))
@@ -363,7 +366,7 @@ def main(argv: list[str] | None = None) -> int:
     args = p.parse_args(argv)
 
     if args.url:
-        sources = [{"type": guess_type(u), "url": u, "backfill": True} for u in args.url]
+        sources = [{"type": guess_type(u), "url": u, "backfill": True, "requested": True} for u in args.url]
         settings: dict = {}
     else:
         sources, settings = load_sources(args.sources)
@@ -371,7 +374,8 @@ def main(argv: list[str] | None = None) -> int:
             print(f"No sources in {args.sources}.")
             return 0
     state = load_state(args.state)
-    limit = args.limit or int(settings.get("max_per_run", 3))
+    # Links asked for by hand all get written; the daily run is capped by settings.max_per_run.
+    limit = args.limit or (len(args.url) if args.url else int(settings.get("max_per_run", 3)))
     written = run(sources, state, limit=limit, date=args.date, posts_dir=args.posts_dir, dry_run=args.dry_run)
     if not args.dry_run:
         save_state(state, args.state)
@@ -386,11 +390,18 @@ def guess_type(url: str) -> str:
         return "youtube"
     if host == "github.com":
         return "github"
+    path = urllib.parse.urlsplit(url if "://" in url else f"https://{url}").path.strip("/")
+    if re.search(r"(^|/)(feed|rss|atom)(\.xml)?$|\.(xml|rss|atom)$", path):
+        return "rss"
     if "medium.com" in host or url.startswith("@"):
-        return "medium"
+        # medium.com/@user is an author; medium.com/@user/post-slug-abc123 or pub.medium.com/post-... is one post
+        return "medium" if url.startswith("@") or re.fullmatch(r"@[\w.-]+", path) or not path else "article"
     if host.endswith("substack.com"):
-        return "substack"
-    return "rss"
+        # name.substack.com or substack.com/@person is a newsletter; .../p/post is one post
+        return "article" if "/p/" in f"/{path}/" else "substack"
+    if "/p/" in f"/{path}/":  # Substack on a custom domain
+        return "article"
+    return "article" if path else "rss"
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { feedApi, FeedApiError, type SourceKind } from "@/lib/feed";
+import { MAX_LINKS, parseLinks, startLessonRun } from "@/lib/lessonRuns";
 
 export type ActionResult = { ok: true; message: string } | { ok: false; message: string };
 
@@ -60,6 +61,28 @@ export async function runNow(): Promise<ActionResult> {
     revalidateTag("feed");
     return { ok: true, message: "Started. New posts will appear on Daily Dose in a minute or two." };
   } catch (err) {
+    return fail(err);
+  }
+}
+
+export async function queueReadingList(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  try {
+    await requireAdmin();
+    const { links, invalid } = parseLinks(String(formData.get("links") ?? ""));
+    if (invalid.length) return { ok: false, message: `Not a link: ${invalid.slice(0, 3).join(", ")}` };
+    if (!links.length) return { ok: false, message: "Paste at least one link." };
+    if (links.length > MAX_LINKS) return { ok: false, message: `Up to ${MAX_LINKS} links per run, please.` };
+    await startLessonRun(links);
+    revalidatePath("/admin");
+    const n = links.length === 1 ? "1 link" : `${links.length} links`;
+    return {
+      ok: true,
+      message: `Started a run for ${n}. Lessons usually appear on Daily Dose in 3 to 5 minutes; links already published are skipped.`,
+    };
+  } catch (err) {
+    if (err instanceof Error && err.message !== "Unauthorized" && !(err instanceof FeedApiError)) {
+      return { ok: false, message: err.message };
+    }
     return fail(err);
   }
 }
