@@ -12,7 +12,7 @@ export default function BlogPage() {
     <>
       <section className="hero">
         <h1>Blog</h1>
-        <p className="lead">Notes on GenAI, ML engineering and VFX tooling.</p>
+        <p className="lead">Notes on GenAI, agents and ML engineering.</p>
         {tags.length > 0 && (
           <p className="tag-row">
             {tags.map(({ tag, count }) => (
