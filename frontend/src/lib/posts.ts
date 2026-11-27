@@ -84,6 +84,8 @@ function collection(name: string) {
   };
   return {
     list: (): PostMeta[] => all().map(({ html: _html, ...meta }) => meta),
+    /** Every entry with its rendered HTML, for site search. */
+    full: (): Post[] => all(),
     get: (slug: string): Post | undefined => (SLUG_RE.test(slug) ? all().find((p) => p.slug === slug) : undefined),
   };
 }
@@ -98,6 +100,8 @@ const posts = collection("posts");
 const lessons = collection("lessons");
 
 export const getLessons = lessons.list;
+export const getFullLessons = lessons.full;
+export const getFullPosts = posts.full;
 export const getLesson = lessons.get;
 
 export const authorSlug = (name: string) =>

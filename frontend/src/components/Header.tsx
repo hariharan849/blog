@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { profile } from "@/lib/profile";
 import NavLinks from "./NavLinks";
+import HeaderSearch from "./HeaderSearch";
 
 function initials(name: string) {
   return name
@@ -23,6 +24,7 @@ export default function Header() {
             <span className="brand-tag">AI engineering notebook</span>
           </span>
         </Link>
+        <HeaderSearch />
         <Link href="/daily#subscribe" className="button button-small header-cta">
           Subscribe
         </Link>
