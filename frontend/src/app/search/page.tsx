@@ -9,6 +9,7 @@ type Props = { searchParams: Promise<{ q?: string; type?: string }> };
 
 const KINDS: { id: SearchKind; label: string }[] = [
   { id: "Project", label: "Projects" },
+  { id: "Article", label: "Articles" },
   { id: "Lesson", label: "Lessons" },
   { id: "Blog", label: "Blog" },
 ];
@@ -30,7 +31,7 @@ export default async function SearchPage({ searchParams }: Props) {
   const params = await searchParams;
   const q = (params.q ?? "").slice(0, 120).trim();
   const kind = KINDS.find((k) => k.id.toLowerCase() === params.type?.toLowerCase())?.id;
-  const all = q ? search(q) : [];
+  const all = q ? await search(q) : [];
   const hits = kind ? all.filter((h) => h.kind === kind) : all;
   const terms = tokenize(q);
   const href = (type?: string) => `/search?${new URLSearchParams({ q, ...(type ? { type: type.toLowerCase() } : {}) })}`;
@@ -42,9 +43,9 @@ export default async function SearchPage({ searchParams }: Props) {
         <h1>{q ? <>Results for &ldquo;{q}&rdquo;</> : "Search the site"}</h1>
         <form action="/search" role="search" className="search-form">
           <label htmlFor="search-page-q" className="visually-hidden">
-            Search projects, lessons and posts
+            Search projects, articles, lessons and posts
           </label>
-          <input id="search-page-q" name="q" type="search" defaultValue={q} placeholder="Search projects, lessons and posts" autoFocus={!q} />
+          <input id="search-page-q" name="q" type="search" defaultValue={q} placeholder="Search projects, articles, lessons and posts" autoFocus={!q} />
           {kind && <input type="hidden" name="type" value={kind.toLowerCase()} />}
           <button type="submit" className="button">
             Search
@@ -119,7 +120,7 @@ export default async function SearchPage({ searchParams }: Props) {
         </>
       ) : (
         <div className="search-empty">
-          <p className="muted">Search titles, tags, authors and the full text of every lesson and post. Popular topics:</p>
+          <p className="muted">Search titles, tags, authors and the full text of every lesson and post, plus my Medium articles. Popular topics:</p>
           <Suggestions />
         </div>
       )}

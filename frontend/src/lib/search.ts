@@ -1,14 +1,15 @@
 import "server-only";
+import { getArticles } from "./medium";
 import { getFullLessons, getFullPosts } from "./posts";
 import { projects } from "./projects";
 
 /**
- * Site search over everything that lives in the repo: projects, blog posts and
- * Daily Dose lessons. Runs on the server per request, so there is no index to
+ * Site search over projects, blog posts, Daily Dose lessons and hari's own
+ * Medium articles (titles, tags and summaries, from the cached feed). Runs on the server per request, so there is no index to
  * build or ship to the browser. Add a new kind of content by adding its docs to
  * `documents()`.
  */
-export type SearchKind = "Project" | "Blog" | "Lesson";
+export type SearchKind = "Project" | "Article" | "Blog" | "Lesson";
 
 export type SearchDoc = {
   kind: SearchKind;
@@ -37,7 +38,8 @@ const stripHtml = (html: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-function documents(): SearchDoc[] {
+async function documents(): Promise<SearchDoc[]> {
+  const articles = await getArticles();
   return [
     ...projects.map((p) => ({
       kind: "Project" as const,
@@ -46,6 +48,16 @@ function documents(): SearchDoc[] {
       external: true,
       summary: p.summary,
       tags: [p.category, ...p.tags],
+      body: "",
+    })),
+    ...articles.map((a) => ({
+      kind: "Article" as const,
+      title: a.title,
+      href: a.url,
+      external: true,
+      date: a.date,
+      summary: a.summary,
+      tags: a.tags,
       body: "",
     })),
     ...getFullPosts().map((p) => ({
@@ -90,11 +102,11 @@ function snippetFor(doc: SearchDoc, terms: string[]) {
 }
 
 /** Every term must appear somewhere; title and tag matches rank above body matches. */
-export function search(query: string, kind?: SearchKind): SearchHit[] {
+export async function search(query: string, kind?: SearchKind): Promise<SearchHit[]> {
   const terms = tokenize(query);
   if (!terms.length) return [];
   const hits: SearchHit[] = [];
-  for (const doc of documents()) {
+  for (const doc of await documents()) {
     if (kind && doc.kind !== kind) continue;
     const fields = {
       title: doc.title.toLowerCase(),

@@ -9,7 +9,7 @@ export default function HeaderSearch() {
         <circle cx="11" cy="11" r="7" />
         <path d="m20 20-3.5-3.5" />
       </svg>
-      <input id="header-search-q" name="q" type="search" placeholder="Search" autoComplete="off" />
+      <input id="header-search-q" name="q" type="search" placeholder="Search…" autoComplete="off" />
     </form>
   );
 }
