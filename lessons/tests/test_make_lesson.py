@@ -207,7 +207,8 @@ def test_load_sources(tmp_path):
 
 def test_repo_default_sources_file_is_valid():
     sources, settings = ml.load_sources()
-    assert sources and all(s["type"] in ("youtube", "substack", "medium", "rss", "github") for s in sources)
+    assert int(settings["max_per_run"]) >= 1
+    assert all(s["type"] in ("youtube", "substack", "medium", "rss", "github") for s in sources)
 
 
 @pytest.mark.parametrize(

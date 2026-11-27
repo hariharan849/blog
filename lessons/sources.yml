@@ -18,16 +18,17 @@
 settings:
   max_per_run: 3
 
-sources:
-  - type: youtube
-    url: https://www.youtube.com/watch?v=nKjPBAw_N_0
+# YouTube is off for now: it blocks transcript downloads from GitHub's servers
+# unless a proxy or cookies secret is set (see the workflow file). The
+# connector is still here; add a youtube source again to turn it back on.
 
+sources:
   # Examples:
-  # - type: youtube
-  #   url: https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxx
   # - type: substack
   #   url: newsletter-name
   # - type: medium
   #   url: "@username"
   # - type: github
   #   url: https://github.com/some-org
+  # - type: youtube   (needs YOUTUBE_PROXY_URL, WEBSHARE_PROXY_* or YOUTUBE_COOKIES)
+  #   url: https://www.youtube.com/playlist?list=PLxxxxxxxxxxxxxxxx
