@@ -22,21 +22,22 @@ export default function DailyView({
   feedNote?: string;
 }) {
   return (
+    <>
+      <section className="hero">
+        <p className="eyebrow">Daily Dose</p>
+        <h1>{feed?.day ? formatDay(feed.day) : "The engineering world, one dose a day"}</h1>
+        <p className="lead">
+          A daily lesson written from a talk worth knowing, plus new posts from the GenAI writers I follow on Medium,
+          Substack and the web.
+        </p>
+      </section>
     <div className="layout">
       <div>
-        <section className="hero">
-          <p className="eyebrow">Daily Dose</p>
-          <h1>{feed?.day ? formatDay(feed.day) : "The engineering world, one dose a day"}</h1>
-          <p className="lead">
-            A daily lesson written from a talk worth knowing, plus new posts from the GenAI writers I follow on Medium,
-            Substack and the web.
-          </p>
-        </section>
 
         {lesson && (
-          <section className="section">
+          <section className="section section-first">
             <div className="section-head">
-              <h2>Lesson</h2>
+              <h2 className="section-title">Lesson of the day</h2>
               {lessonCount > 1 && <Link href="/daily/lessons">All {lessonCount} lessons →</Link>}
             </div>
             <LessonCard lesson={lesson} featured />
@@ -45,7 +46,7 @@ export default function DailyView({
 
         <section className="section">
           <div className="section-head">
-            <h2>From the writers I follow</h2>
+            <h2 className="section-title">From the writers I follow</h2>
           </div>
           {!feed ? (
             <p className="muted empty">{feedNote}</p>
@@ -85,5 +86,6 @@ export default function DailyView({
         )}
       </aside>
     </div>
+    </>
   );
 }

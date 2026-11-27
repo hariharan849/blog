@@ -3,15 +3,16 @@ import type { PostMeta } from "@/lib/posts";
 import { formatDate } from "@/lib/format";
 
 export default function PostCard({ post }: { post: PostMeta }) {
+  const href = `/blog/${post.slug}`;
   return (
-    <article className="card post-card">
-      <div className="card-body">
+    <article className="card tile">
+      <div className="card-body tile-body">
         <p className="meta">
           <time dateTime={post.date}>{formatDate(post.date)}</time> · {post.readingMinutes} min read
           {post.draft && <span className="badge badge-warn">Draft</span>}
         </p>
-        <h3 className="post-card-title">
-          <Link href={`/blog/${post.slug}`}>{post.title}</Link>
+        <h3 className="tile-title">
+          <Link href={href}>{post.title}</Link>
         </h3>
         {post.summary && <p className="excerpt">{post.summary}</p>}
         {post.tags.length > 0 && (
@@ -23,6 +24,9 @@ export default function PostCard({ post }: { post: PostMeta }) {
             ))}
           </p>
         )}
+        <Link href={href} className="read-more">
+          Read more <span aria-hidden="true">→</span>
+        </Link>
       </div>
     </article>
   );
