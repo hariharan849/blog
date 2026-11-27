@@ -35,6 +35,7 @@ export const profile: Profile = {
   name: "Hariharan Manoharan",
   shortName: "Hariharan",
   headline: "I build GenAI systems: agents, retrieval and LLMs in production.",
+  avatar: "/images/profile.jpg",
   role: "Lead AI Engineer · GenAI, Agents & Deep Learning",
   intro:
     "Lead AI Engineer with 9+ years of building software, from AI-powered tools and pipeline automation to high-performance systems. Today I lead work on agentic workflows, retrieval systems and serving LLMs in production.",
