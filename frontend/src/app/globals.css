@@ -1524,3 +1524,97 @@ button:disabled {
     grid-column: 1 / -1;
   }
 }
+
+/* ---------- Chips, view tabs and lesson index ---------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+.chip:hover {
+  background: var(--button);
+  color: #fff;
+  text-decoration: none;
+}
+.chip-active {
+  background: var(--button);
+  color: #fff;
+}
+.chip-count {
+  font-size: 0.75rem;
+  opacity: 0.75;
+}
+.view-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin: 0.5rem 0 1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.view-tabs a {
+  padding: 0.6rem 0.9rem;
+  color: var(--muted);
+  font-weight: 700;
+  white-space: nowrap;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+}
+.view-tabs a:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+.view-tabs a.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 1.5rem;
+}
+.filter-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+  margin-right: 0.25rem;
+}
+.index-group {
+  margin-bottom: 1.5rem;
+}
+.index-letter {
+  display: inline-grid;
+  place-items: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 8px;
+  background: var(--button);
+  color: #fff;
+  font-size: 1.1rem;
+  margin-bottom: 0.6rem;
+}
+.index-card {
+  margin: 0;
+  padding: 0 1.25rem;
+}
+.index-card li:first-child {
+  border-top: 0;
+}
+.sidebar-authors {
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+.sidebar-authors .tag-row {
+  margin: 0;
+}

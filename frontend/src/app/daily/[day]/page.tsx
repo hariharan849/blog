@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { feedApi, FeedApiError } from "@/lib/feed";
 import { formatDay } from "@/lib/format";
-import { getLessons } from "@/lib/posts";
+import { getLessonAuthors, getLessons } from "@/lib/posts";
 import DailyView from "../DailyView";
 
 type Props = { params: Promise<{ day: string }> };
@@ -27,6 +27,7 @@ export default async function DayPage({ params }: Props) {
         recentDays={days}
         lesson={lessons.find((l) => l.date === day)}
         lessonCount={lessons.length}
+        lessonAuthors={getLessonAuthors()}
       />
     );
   } catch (err) {

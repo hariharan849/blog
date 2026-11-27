@@ -12,6 +12,7 @@ export default function DailyView({
   lesson,
   lessonCount = 0,
   feedNote,
+  lessonAuthors = [],
 }: {
   feed: FeedDay | null;
   recentDays: { day: string; count: number }[];
@@ -20,6 +21,8 @@ export default function DailyView({
   lessonCount?: number;
   /** Shown instead of the feed when the feed backend isn't reachable. */
   feedNote?: string;
+  /** Source authors of the lessons, for the "Browse lessons" sidebar card. */
+  lessonAuthors?: { author: string; slug: string; count: number }[];
 }) {
   return (
     <>
@@ -71,6 +74,35 @@ export default function DailyView({
 
       <aside className="sidebar">
         <SubscribeForm />
+        {lessonCount > 0 && (
+          <section className="card">
+            <h3 className="card-header">Browse lessons</h3>
+            <ul className="link-list">
+              <li>
+                <Link href="/daily/lessons">Latest</Link>
+                <span className="count">{lessonCount}</span>
+              </li>
+              <li>
+                <Link href="/daily/lessons?view=title">By title (A–Z)</Link>
+              </li>
+              <li>
+                <Link href="/daily/lessons?view=author">By author</Link>
+              </li>
+            </ul>
+            {lessonAuthors.length > 0 && (
+              <div className="card-body sidebar-authors">
+                <p className="kicker">Authors</p>
+                <div className="tag-row">
+                  {lessonAuthors.map((a) => (
+                    <Link key={a.slug} href={`/daily/lessons?view=author&author=${a.slug}`} className="chip">
+                      {a.author} <span className="chip-count">{a.count}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
         {recentDays.length > 0 && (
           <section className="card">
             <h3 className="card-header">Recent days</h3>

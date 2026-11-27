@@ -205,7 +205,10 @@ def render_post(item: Item, lesson: Lesson, date: dt.date) -> str:
         f"source_id: {yaml_str(item.key)}",
         f"source_url: {yaml_str(item.url)}",
         f"source_type: {item.kind}",
+        f"source_title: {yaml_str(item.title)}",
     ]
+    if item.author:
+        lines.append(f"source_author: {yaml_str(item.author)}")
     if item.video_id:
         lines.append(f"youtube_id: {item.video_id}")
     lines += ["---", "", credit_line(item), "", lesson.body, ""]

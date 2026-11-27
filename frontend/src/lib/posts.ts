@@ -19,6 +19,10 @@ export type PostMeta = {
   slug: string;
   /** Lessons only: the YouTube video the lesson was written from. */
   youtubeId?: string;
+  /** Lessons only: who wrote or presented the source (article, video or repo). */
+  sourceAuthor?: string;
+  /** Lessons only: the title of the source the lesson was written from. */
+  sourceTitle?: string;
   title: string;
   date: string;
   summary: string;
@@ -36,6 +40,16 @@ function toDate(value: unknown): string {
   return String(value ?? "").slice(0, 10);
 }
 
+/** Older lessons have no source_author/source_title; fall back to their credit line. */
+const CREDIT_RE = /^\*Lesson from the (?:video|article) \[([^\]]+)\]\([^)]*\)(?: by (.+?))?\.\*\s*$/m;
+
+function sourceInfo(data: Record<string, unknown>, content: string): { sourceAuthor?: string; sourceTitle?: string } {
+  const credit = content.match(CREDIT_RE);
+  const author = String(data.source_author ?? credit?.[2] ?? "").trim();
+  const title = String(data.source_title ?? credit?.[1] ?? "").trim();
+  return { ...(author ? { sourceAuthor: author } : {}), ...(title ? { sourceTitle: title } : {}) };
+}
+
 function read(dir: string, file: string): Post {
   const slug = file.replace(/\.mdx?$/, "");
   const raw = fs.readFileSync(path.join(dir, file), "utf8");
@@ -50,6 +64,7 @@ function read(dir: string, file: string): Post {
     draft: Boolean(data.draft),
     readingMinutes: Math.max(1, Math.round(words / 220)),
     ...(data.youtube_id ? { youtubeId: String(data.youtube_id) } : {}),
+    ...sourceInfo(data, content),
     html: marked.parse(content, { async: false }) as string,
   };
 }
@@ -84,6 +99,24 @@ const lessons = collection("lessons");
 
 export const getLessons = lessons.list;
 export const getLesson = lessons.get;
+
+export const authorSlug = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+/** Lesson counts per source author, most lessons first. */
+export function getLessonAuthors(): { author: string; slug: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const l of getLessons()) {
+    const a = l.sourceAuthor ?? "Other sources";
+    counts.set(a, (counts.get(a) ?? 0) + 1);
+  }
+  return [...counts]
+    .map(([author, count]) => ({ author, slug: authorSlug(author), count }))
+    .sort((a, b) => b.count - a.count || a.author.localeCompare(b.author));
+}
 
 export function getPosts(): PostMeta[] {
   return posts.list();
