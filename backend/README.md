@@ -79,6 +79,24 @@ switched off until you set the repository variables below (Settings → Secrets 
 | `DIGEST_TO`, `DIGEST_FROM` | your verified SES address |
 | `SITE_URL` | `https://your-domain.com` |
 
+For the daily lesson workflow to email subscribers, also add the variable `FEED_API_URL` (the `ApiUrl` output)
+and the secret `FEED_ADMIN_TOKEN` (the `/dailydose/admin-token` value).
+
+## Email subscriptions
+
+Visitors can subscribe to the daily lesson from the Daily Dose pages. It's double opt-in:
+
+1. `POST /subscribe` saves the address as *pending* and emails a confirmation link to `<SiteUrl>/daily/subscribe/confirm`.
+2. That page calls `POST /subscribe/confirm`, and the subscriber is *active*.
+3. After the daily lesson workflow commits a lesson, it calls `POST /lessons/announce` (admin token). The API records the lesson so it's only ever sent once and hands it to `MailerFunction`, which emails each active subscriber a short version (title, summary, opening paragraph) linking to `<SiteUrl>/daily/lessons/<slug>`.
+4. Every email has an unsubscribe link to `<SiteUrl>/daily/unsubscribe`, which deletes the subscriber.
+
+Subscriptions stay closed (the form says "open soon") until both `DigestFrom` and `SiteUrl` are set.
+Before opening them to the public, **request SES production access** in the SES console: in sandbox mode SES only
+delivers to addresses you have verified yourself. The admin page shows how many people have confirmed.
+
+Locally, `scripts/local_api.py` prints subscriber emails to the terminal instead of sending them.
+
 ## Cost
 
 At this size (one nightly run, a handful of API calls) Lambda, DynamoDB on-demand, API Gateway, SES and

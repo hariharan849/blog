@@ -54,6 +54,7 @@ export const feedConfigured = Boolean(API_URL);
 async function request<T>(path: string, init: RequestInit & { admin?: boolean; revalidate?: number } = {}) {
   if (!API_URL) throw new FeedApiError(503, "FEED_API_URL is not configured");
   const { admin, revalidate, headers, ...rest } = init;
+  const caching = admin || rest.cache ? { cache: "no-store" as const } : { next: { revalidate: revalidate ?? 300, tags: ["feed"] } };
   const res = await fetch(`${API_URL}${path}`, {
     ...rest,
     headers: {
@@ -62,7 +63,7 @@ async function request<T>(path: string, init: RequestInit & { admin?: boolean; r
       ...(admin ? { Authorization: `Bearer ${process.env.FEED_ADMIN_TOKEN ?? ""}` } : {}),
       ...headers,
     },
-    ...(admin ? { cache: "no-store" as const } : { next: { revalidate: revalidate ?? 300, tags: ["feed"] } }),
+    ...caching,
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new FeedApiError(res.status, (data as { error?: string; message?: string }).error ?? (data as { message?: string }).message ?? `Request failed (${res.status})`);
@@ -90,6 +91,27 @@ export const feedApi = {
   deleteSource: (id: string) =>
     request<{ deleted: string }>(`/sources/${encodeURIComponent(id)}`, { admin: true, method: "DELETE" }),
   runNow: () => request<{ status: string }>("/ingest", { admin: true, method: "POST" }),
+  subscriberCounts: () => request<{ active: number; pending: number }>("/subscribers", { admin: true }),
+
+  // Daily lesson email subscriptions (public, never cached).
+  subscribe: (email: string, company = "") =>
+    request<{ status: string }>("/subscribe", {
+      method: "POST",
+      cache: "no-store",
+      body: JSON.stringify({ email, company }),
+    }),
+  confirmSubscription: (id: string, token: string) =>
+    request<{ status: string }>("/subscribe/confirm", {
+      method: "POST",
+      cache: "no-store",
+      body: JSON.stringify({ id, token }),
+    }),
+  unsubscribe: (id: string, token: string) =>
+    request<{ status: string }>("/unsubscribe", {
+      method: "POST",
+      cache: "no-store",
+      body: JSON.stringify({ id, token }),
+    }),
 };
 
 export async function safeFeed<T>(promise: Promise<T>): Promise<T | null> {

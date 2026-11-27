@@ -41,3 +41,5 @@ python -m pytest -q lessons/tests
 ```
 
 Lessons are plain Markdown, so edit or delete one like any other file.
+
+Visitors can also **subscribe by email** from the Daily Dose pages. After each lesson is committed, the workflow runs `lessons/announce.py`, and the backend emails confirmed subscribers a short version that links back to the full lesson. This stays off until the backend is deployed and `FEED_API_URL` / `FEED_ADMIN_TOKEN` are set; see [backend/README.md](backend/README.md#email-subscriptions).

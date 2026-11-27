@@ -63,3 +63,38 @@ def test_save_post_and_done_ids(tmp_path):
     assert "youtube_id: dQw4w9WgXcQ" in text
     assert "https://www.youtube.com/watch?v=dQw4w9WgXcQ" in text
     assert ml.done_ids(tmp_path) == {"dQw4w9WgXcQ"}
+
+
+def test_announce_parse(tmp_path):
+    import announce
+
+    video = ml.Video("dQw4w9WgXcQ", "Talk", "Chan")
+    lesson = ml.Lesson(
+        title='Vectors: a "fast" intro',
+        summary="Why ANN works.",
+        tags=["rag"],
+        body="## Start\n\nVector databases store **embeddings** from [models](https://x.y).\n\nMore.",
+    )
+    path = ml.save_post(video, lesson, dt.date(2026, 11, 27), tmp_path)
+    parsed = announce.parse(path)
+    assert parsed == {
+        "slug": "2026-11-27-vectors-a-fast-intro",
+        "title": 'Vectors: a "fast" intro',
+        "summary": "Why ANN works.",
+        "snippet": "Vector databases store embeddings from models.",
+    }
+
+
+def test_announce_snippet_is_shortened():
+    import announce
+
+    long = " ".join(f"w{i}" for i in range(100))
+    assert announce.snippet(long).endswith("w69…")
+
+
+def test_announce_skips_without_backend(monkeypatch, capsys):
+    import announce
+
+    monkeypatch.delenv("FEED_API_URL", raising=False)
+    assert announce.main(["does-not-exist.md"]) == 0
+    assert "not emailing" in capsys.readouterr().out

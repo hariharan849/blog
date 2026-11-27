@@ -28,12 +28,13 @@ export default async function AdminPage({ searchParams }: Props) {
   }
 
   let sources: Source[] = [];
+  let subscribers: { active: number; pending: number } | null = null;
   let loadError = "";
   if (!feedConfigured) {
     loadError = "FEED_API_URL isn't set, so the backend can't be reached.";
   } else {
     try {
-      sources = await feedApi.sources();
+      [sources, subscribers] = await Promise.all([feedApi.sources(), feedApi.subscriberCounts().catch(() => null)]);
     } catch (err) {
       loadError = err instanceof FeedApiError ? err.message : "Couldn't load sources.";
     }
@@ -48,6 +49,12 @@ export default async function AdminPage({ searchParams }: Props) {
           <p className="muted">
             Every night at 2 AM, new posts from these authors are collected, shown on Daily Dose and emailed to you.
           </p>
+          {subscribers && (
+            <p className="muted small">
+              Email subscribers: {subscribers.active} confirmed
+              {subscribers.pending > 0 && `, ${subscribers.pending} waiting to confirm`}
+            </p>
+          )}
         </div>
         <SignOutButton />
       </section>

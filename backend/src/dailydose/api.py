@@ -1,9 +1,12 @@
 """HTTP API Lambda.
 
 Public:  GET /feed[?day=YYYY-MM-DD]   GET /feed/days[?limit=&before=]
+         POST /subscribe {email}   POST /subscribe/confirm {id, token}   POST /unsubscribe {id, token}
 Admin (Authorization: Bearer <admin token>):
          GET /sources   POST /sources   PATCH /sources/{id}   DELETE /sources/{id}
          POST /ingest   (runs the daily job now, asynchronously)
+         GET /subscribers   (counts only)
+         POST /lessons/announce {slug, title, summary, snippet}   (emails a new lesson to subscribers)
 """
 from __future__ import annotations
 
@@ -21,7 +24,9 @@ from aws_lambda_powertools.event_handler.exceptions import (
     UnauthorizedError,
 )
 
-from . import feeds
+from datetime import datetime, timedelta, timezone
+
+from . import feeds, subscriptions
 from .config import secret, settings
 from .store import Store, now_iso
 
@@ -170,6 +175,104 @@ def trigger_ingest():
         return _json(500, {"error": "INGEST_FUNCTION_NAME is not configured"})
     boto3.client("lambda").invoke(FunctionName=fn, InvocationType="Event", Payload=b"{}")
     return _json(202, {"status": "started"})
+
+
+# --------------------------------------------------------- subscriptions
+RESEND_AFTER = timedelta(minutes=10)
+
+
+def _str(body: dict[str, Any], key: str, limit: int) -> str:
+    return str(body.get(key) or "").strip()[:limit]
+
+
+@app.post("/subscribe")
+def subscribe():
+    if not subscriptions.enabled():
+        return _json(503, {"error": "Email subscriptions aren't open yet."})
+    body = _body()
+    # Same reply whether the address is new, pending or already active, so the
+    # form can't be used to find out who is subscribed.
+    accepted = _json(202, {"status": "check_email"})
+    if body.get("company"):  # honeypot field that people never see
+        return accepted
+    email = subscriptions.normalize_email(str(body.get("email", "")))
+    if not email:
+        return _json(400, {"error": "Please enter a valid email address."})
+
+    sid = subscriptions.subscriber_id(email)
+    existing = store().get_subscriber(sid)
+    if existing and existing.get("status") == "active":
+        return accepted
+    if existing and existing.get("confirm_sent_at"):
+        last = datetime.fromisoformat(existing["confirm_sent_at"])
+        if datetime.now(timezone.utc) - last < RESEND_AFTER:
+            return accepted
+    sub = {
+        "id": sid,
+        "email": email,
+        "status": "pending",
+        "token": existing["token"] if existing else subscriptions.new_token(),
+        "created_at": existing["created_at"] if existing else now_iso(),
+        "confirm_sent_at": now_iso(),
+    }
+    store().put_subscriber(sub)
+    subscriptions.send_confirmation(sub)
+    return accepted
+
+
+def _id_token() -> tuple[str, str]:
+    body = _body()
+    sid, token = _str(body, "id", 64), _str(body, "token", 64)
+    if not sid or not token:
+        raise BadRequestError("id and token are required")
+    return sid, token
+
+
+@app.post("/subscribe/confirm")
+def confirm_subscription():
+    sid, token = _id_token()
+    if store().activate_subscriber(sid, token) is None:
+        return _json(404, {"error": "This confirmation link is no longer valid. Please subscribe again."})
+    return _json(200, {"status": "active"})
+
+
+@app.post("/unsubscribe")
+def unsubscribe():
+    sid, token = _id_token()
+    if store().delete_subscriber(sid, token) is None:
+        return _json(404, {"error": "This unsubscribe link is no longer valid."})
+    return _json(200, {"status": "unsubscribed"})
+
+
+@app.get("/subscribers")
+def subscriber_counts():
+    _require_admin()
+    subs = store().subscribers()
+    active = sum(1 for s in subs if s.get("status") == "active")
+    return _json(200, {"active": active, "pending": len(subs) - active})
+
+
+@app.post("/lessons/announce")
+def announce_lesson():
+    _require_admin()
+    body = _body()
+    lesson = {
+        "slug": _str(body, "slug", 120),
+        "title": _str(body, "title", 300),
+        "summary": _str(body, "summary", 500),
+        "snippet": _str(body, "snippet", 1500),
+    }
+    if not subscriptions.SLUG_RE.match(lesson["slug"]) or not lesson["title"]:
+        raise BadRequestError("slug and title are required")
+    if not subscriptions.enabled():
+        return _json(200, {"status": "email_disabled"})
+    fn = settings().mailer_function_name
+    if not fn:
+        return _json(500, {"error": "MAILER_FUNCTION_NAME is not configured"})
+    if not store().claim_lesson(lesson["slug"], lesson["title"]):
+        return _json(200, {"status": "already_sent"})
+    boto3.client("lambda").invoke(FunctionName=fn, InvocationType="Event", Payload=json.dumps(lesson).encode())
+    return _json(202, {"status": "sending"})
 
 
 @logger.inject_lambda_context

@@ -1,12 +1,16 @@
 name: Daily lesson
 
-# Writes one lesson a day from the next video in the lessons playlist and
-# commits it to frontend/content/lessons. The site shows it in the Daily Dose tab.
+# Writes one lesson a day from the next video in the lessons playlist,
+# commits it to frontend/content/lessons (the site shows it in the Daily Dose
+# tab), then emails a short version to Daily Dose subscribers.
 #
 # Setup (repository Settings → Secrets and variables → Actions):
 #   secret   ANTHROPIC_API_KEY    Claude API key used to write the lesson
 #   variable LESSON_PLAYLIST_URL  an Unlisted or public YouTube playlist
 #                                 (Watch Later itself can't be read by any API)
+# Emailing subscribers also needs the backend to be deployed:
+#   variable FEED_API_URL         the backend's ApiUrl output
+#   secret   FEED_ADMIN_TOKEN     same value as /dailydose/admin-token in SSM
 
 on:
   schedule:
@@ -63,6 +67,7 @@ jobs:
           python lessons/make_lesson.py "${args[@]}"
 
       - name: Commit lesson
+        id: commit
         if: steps.setup.outputs.ready == 'true'
         run: |
           git add frontend/content/lessons
@@ -70,7 +75,19 @@ jobs:
             echo "No new lesson today."
             exit 0
           fi
+          echo "files=$(git diff --cached --name-only --diff-filter=A -- 'frontend/content/lessons/*.md' | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
           git config user.name "github-actions[bot]"
           git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
           git commit -m "Daily lesson for $(date -u +%F)"
           git push
+
+      - name: Email subscribers
+        if: steps.commit.outputs.files != ''
+        env:
+          FEED_API_URL: ${{ vars.FEED_API_URL }}
+          FEED_ADMIN_TOKEN: ${{ secrets.FEED_ADMIN_TOKEN }}
+          FILES: ${{ steps.commit.outputs.files }}
+        run: |
+          # Give the site a few minutes to redeploy so the lesson link works when the email lands.
+          if [ -n "$FEED_API_URL" ]; then sleep 180; fi
+          python lessons/announce.py $FILES

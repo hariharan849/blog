@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getLessons } from "@/lib/posts";
 import LessonCard from "@/components/LessonCard";
+import SubscribeForm from "@/components/SubscribeForm";
 
 export const metadata: Metadata = {
   title: "Daily lessons",
@@ -21,6 +22,7 @@ export default function LessonsPage() {
           One engineering lesson a day, written from a talk or tutorial on my watch list, so it takes a few minutes to
           read instead of an hour to watch.
         </p>
+        <SubscribeForm compact />
       </section>
       {lessons.length ? (
         <div className="stack">

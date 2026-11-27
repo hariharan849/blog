@@ -5,6 +5,8 @@
 
 Then in /frontend set FEED_API_URL=http://127.0.0.1:8787 and FEED_ADMIN_TOKEN=dev-token.
 POST /ingest runs the daily job synchronously so you can see results straight away.
+Subscriber emails aren't sent locally: they're printed here instead, so you can
+open the confirm and unsubscribe links from the terminal.
 Data lives in memory and is lost when the server stops.
 """
 import json
@@ -21,6 +23,8 @@ os.environ.setdefault("AWS_SECRET_ACCESS_KEY", "local")
 os.environ.setdefault("TABLE_NAME", "DailyDoseLocal")
 os.environ.setdefault("ADMIN_TOKEN_PARAM", "/dailydose/admin-token")
 os.environ.setdefault("POWERTOOLS_SERVICE_NAME", "local")
+os.environ.setdefault("DIGEST_FROM", "dailydose@localhost.test")
+os.environ.setdefault("SITE_URL", "http://localhost:3000")
 
 import boto3  # noqa: E402
 from moto import mock_aws  # noqa: E402
@@ -45,6 +49,14 @@ def bootstrap():
     )
     boto3.client("ssm").put_parameter(Name=os.environ["ADMIN_TOKEN_PARAM"], Value=TOKEN, Type="SecureString")
 
+    from dailydose import subscriptions
+
+    def print_email(_ses, to, message):
+        subject, text, _html = message
+        print(f"\n--- email to {to}: {subject}\n{text}\n---\n", flush=True)
+
+    subscriptions._send = print_email
+
 
 class Handler(BaseHTTPRequestHandler):
     def _handle(self):
@@ -59,6 +71,17 @@ class Handler(BaseHTTPRequestHandler):
             if self.headers.get("Authorization") != f"Bearer {TOKEN}":
                 return self._send(401, {"message": "Unauthorized"})
             return self._send(202, {"status": "done", **ingest.run()})
+
+        if method == "POST" and url.path == "/lessons/announce":  # send synchronously locally
+            if self.headers.get("Authorization") != f"Bearer {TOKEN}":
+                return self._send(401, {"message": "Unauthorized"})
+            from dailydose import subscriptions
+            from dailydose.store import Store
+
+            lesson = json.loads(body or "{}")
+            if not Store().claim_lesson(lesson.get("slug", ""), lesson.get("title", "")):
+                return self._send(200, {"status": "already_sent"})
+            return self._send(202, {"status": "sent", "recipients": subscriptions.send_lesson(lesson)})
 
         event = {
             "version": "2.0",

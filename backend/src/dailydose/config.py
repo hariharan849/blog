@@ -16,6 +16,7 @@ class Settings:
     revalidate_secret_param: str
     admin_token_param: str
     ingest_function_name: str
+    mailer_function_name: str
 
 
 def _list(value: str) -> list[str]:
@@ -36,6 +37,7 @@ def settings() -> Settings:
         revalidate_secret_param=env.get("REVALIDATE_SECRET_PARAM", ""),
         admin_token_param=env.get("ADMIN_TOKEN_PARAM", ""),
         ingest_function_name=env.get("INGEST_FUNCTION_NAME", ""),
+        mailer_function_name=env.get("MAILER_FUNCTION_NAME", ""),
     )
 
 

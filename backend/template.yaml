@@ -1,6 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: Daily Dose - follows Medium/Substack/RSS authors, stores new posts daily and emails a digest.
+Description: Daily Dose - follows Medium/Substack/RSS authors, stores new posts daily, emails a digest, and emails each daily lesson to subscribers.
 
 Parameters:
   ScheduleTimezone:
@@ -18,11 +18,11 @@ Parameters:
   DigestFrom:
     Type: String
     Default: ""
-    Description: SES-verified sender address. Leave empty to disable email.
+    Description: SES-verified sender address for the digest and subscriber emails. Leave empty to disable all email (subscriptions stay closed).
   SiteUrl:
     Type: String
     Default: ""
-    Description: Public URL of the Next.js site (used for links in the email), e.g. https://example.com
+    Description: Public URL of the Next.js site (used for links in emails), e.g. https://example.com. Subscriptions stay closed until it is set.
   RevalidateUrl:
     Type: String
     Default: ""
@@ -55,6 +55,8 @@ Globals:
         TIMEZONE: !Ref ScheduleTimezone
         LOOKBACK_HOURS: !Ref LookbackHours
         ADMIN_TOKEN_PARAM: !Ref AdminTokenParam
+        DIGEST_FROM: !Ref DigestFrom
+        SITE_URL: !Ref SiteUrl
         POWERTOOLS_LOG_LEVEL: INFO
 
 Resources:
@@ -90,8 +92,6 @@ Resources:
       Environment:
         Variables:
           DIGEST_TO: !Ref DigestTo
-          DIGEST_FROM: !Ref DigestFrom
-          SITE_URL: !Ref SiteUrl
           REVALIDATE_URL: !Ref RevalidateUrl
           REVALIDATE_SECRET_PARAM: !If [HasRevalidate, !Ref RevalidateSecretParam, ""]
       Policies:
@@ -126,6 +126,33 @@ Resources:
       ComparisonOperator: GreaterThanOrEqualToThreshold
       TreatMissingData: notBreaching
 
+  MailerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: dailydose.subscriptions.handler
+      Description: Emails a new daily lesson to every active subscriber
+      Timeout: 300
+      Policies:
+        - DynamoDBCrudPolicy: { TableName: !Ref Table }
+        - Statement:
+            - Effect: Allow
+              Action: [ses:SendEmail]
+              Resource: "*"
+
+  MailerErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Daily Dose lesson mailer failed
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions: [{ Name: FunctionName, Value: !Ref MailerFunction }]
+      Statistic: Sum
+      Period: 86400
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
   ApiFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -134,10 +161,15 @@ Resources:
       Environment:
         Variables:
           INGEST_FUNCTION_NAME: !Ref IngestFunction
+          MAILER_FUNCTION_NAME: !Ref MailerFunction
       Policies:
         - DynamoDBCrudPolicy: { TableName: !Ref Table }
         - LambdaInvokePolicy: { FunctionName: !Ref IngestFunction }
+        - LambdaInvokePolicy: { FunctionName: !Ref MailerFunction }
         - Statement:
+            - Effect: Allow
+              Action: [ses:SendEmail]
+              Resource: "*"
             - Effect: Allow
               Action: [ssm:GetParameter]
               Resource: !Sub "arn:${AWS::Partition}:ssm:${AWS::Region}:${AWS::AccountId}:parameter${AdminTokenParam}"
