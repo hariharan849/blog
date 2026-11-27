@@ -27,7 +27,7 @@ def build(day: str, items: list[dict[str, Any]], site_url: str = "") -> tuple[st
     for source, entries in sorted(by_source.items()):
         text_lines.append(f"## {source}")
         parts.append(
-            f'<h2 style="font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#0b7285;'
+            f'<h2 style="font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:#2563eb;'
             f'border-bottom:1px solid #e1e6eb;padding-bottom:6px;margin:24px 0 12px">{html.escape(source)}</h2>'
         )
         for e in entries:
@@ -36,7 +36,7 @@ def build(day: str, items: list[dict[str, Any]], site_url: str = "") -> tuple[st
                 text_lines.append(f"  {e['excerpt']}")
             parts.append(
                 '<div style="margin:0 0 16px">'
-                f'<a href="{html.escape(e["url"], quote=True)}" style="font-size:16px;font-weight:600;color:#203a43;text-decoration:none">{html.escape(e["title"])}</a>'
+                f'<a href="{html.escape(e["url"], quote=True)}" style="font-size:16px;font-weight:600;color:#1e3a8a;text-decoration:none">{html.escape(e["title"])}</a>'
                 f'<div style="color:#627080;font-size:13px">{html.escape(e.get("author") or "")}</div>'
                 + (f'<p style="margin:4px 0 0;font-size:14px;line-height:1.5">{html.escape(e["excerpt"])}</p>' if e.get("excerpt") else "")
                 + "</div>"
@@ -45,7 +45,7 @@ def build(day: str, items: list[dict[str, Any]], site_url: str = "") -> tuple[st
     if site_url:
         link = f"{site_url}/daily/{day}"
         text_lines.append(f"Read on the site: {link}")
-        parts.append(f'<p style="margin-top:32px"><a href="{html.escape(link, quote=True)}" style="color:#0b7285">Read on the site →</a></p>')
+        parts.append(f'<p style="margin-top:32px"><a href="{html.escape(link, quote=True)}" style="color:#2563eb">Read on the site →</a></p>')
     parts.append("</div>")
     return subject, "\n".join(text_lines), "".join(parts)
 

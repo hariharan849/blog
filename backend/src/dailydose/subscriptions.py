@@ -67,7 +67,7 @@ def unsubscribe_url(sub: dict[str, Any]) -> str:
 # ----------------------------------------------------------------- emails
 _WRAP = '<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:560px;margin:0 auto;color:#1f2933;line-height:1.55">'
 _BUTTON = (
-    'display:inline-block;background:#0b7285;color:#fff;text-decoration:none;'
+    'display:inline-block;background:#2563eb;color:#fff;text-decoration:none;'
     "padding:10px 18px;border-radius:6px;font-weight:600"
 )
 
@@ -102,8 +102,8 @@ def build_lesson_email(lesson: dict[str, Any], sub: dict[str, Any]) -> tuple[str
     )
     body = (
         _WRAP
-        + '<p style="color:#0b7285;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px">Daily Dose · today\'s lesson</p>'
-        f'<h1 style="font-size:22px;margin:0 0 8px"><a href="{html.escape(url, quote=True)}" style="color:#203a43;text-decoration:none">{html.escape(title)}</a></h1>'
+        + '<p style="color:#2563eb;font-size:13px;text-transform:uppercase;letter-spacing:.06em;margin:0 0 8px">Daily Dose · today\'s lesson</p>'
+        f'<h1 style="font-size:22px;margin:0 0 8px"><a href="{html.escape(url, quote=True)}" style="color:#1e3a8a;text-decoration:none">{html.escape(title)}</a></h1>'
         + (f'<p style="color:#627080;margin:0 0 16px">{html.escape(summary)}</p>' if summary else "")
         + (f"<p>{html.escape(snippet)}</p>" if snippet else "")
         + f'<p style="margin:24px 0"><a href="{html.escape(url, quote=True)}" style="{_BUTTON}">Read the full lesson →</a></p>'
