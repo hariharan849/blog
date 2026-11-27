@@ -60,7 +60,16 @@ export default async function HomePage() {
       <section className="banner home-hero">
         <div className="home-hero-grid">
           <div>
-            <p className="banner-eyebrow">{profile.role}</p>
+            <div className="hero-byline">
+              {profile.avatar && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={profile.avatar} alt="" width={52} height={52} className="hero-avatar" />
+              )}
+              <div>
+                <p className="hero-byline-name">{profile.name}</p>
+                <p className="banner-eyebrow">{profile.role}</p>
+              </div>
+            </div>
             <h1>{profile.headline}</h1>
             <ul className="hero-points">
               <li>
@@ -150,6 +159,17 @@ export default async function HomePage() {
       <section className="section about-band card">
         <div className="card-body about-band-body">
           <div>
+            {profile.avatar && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatar}
+                alt={`${profile.name}'s profile picture`}
+                width={96}
+                height={96}
+                className="about-band-avatar"
+                loading="lazy"
+              />
+            )}
             <p className="kicker">About me</p>
             <h2>Hi, I&apos;m {profile.shortName}.</h2>
             <p>

@@ -13,6 +13,14 @@ export const metadata: Metadata = {
   title: { default: `${profile.name} · ${profile.role}`, template: `%s · ${profile.name}` },
   description: profile.intro,
   alternates: { types: { "application/rss+xml": "/rss.xml" } },
+  ...(profile.avatar && {
+    openGraph: {
+      type: "website",
+      siteName: profile.name,
+      images: [{ url: profile.avatar, width: 480, height: 480, alt: profile.name }],
+    },
+    twitter: { card: "summary", images: [profile.avatar] },
+  }),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
