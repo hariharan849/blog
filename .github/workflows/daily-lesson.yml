@@ -15,6 +15,9 @@ name: Daily lesson
 # Emailing subscribers also needs the backend to be deployed:
 #   variable FEED_API_URL             the backend's ApiUrl output
 #   secret   FEED_ADMIN_TOKEN         same value as /dailydose/admin-token in SSM
+# The /admin "Reading list" starts this workflow with links (workflow_dispatch input
+# `urls`). It needs LESSONS_GITHUB_TOKEN on Vercel: a fine-grained token for this
+# repository with "Actions: Read and write".
 
 on:
   schedule:

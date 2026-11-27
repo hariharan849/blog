@@ -70,6 +70,7 @@ Environment variables (Production):
 | `NEXTAUTH_SECRET` | now, for /admin | `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | now, for /admin | same as `NEXT_PUBLIC_SITE_URL` |
 | `ADMIN_GITHUB_LOGINS` | now, for /admin | `hariharan849` |
+| `LESSONS_GITHUB_TOKEN` | for the /admin reading list | fine-grained GitHub token for this repo with **Actions: Read and write** |
 | `FEED_API_URL` | after the backend deploy | the SAM `ApiUrl` output |
 | `FEED_ADMIN_TOKEN` | after the backend deploy | SSM `/dailydose/admin-token` |
 | `REVALIDATE_SECRET` | after the backend deploy | SSM `/dailydose/revalidate-secret` |
