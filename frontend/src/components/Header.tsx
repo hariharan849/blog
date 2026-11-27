@@ -19,10 +19,7 @@ export default function Header() {
           <span className="brand-mark" aria-hidden="true">
             {initials(profile.name)}
           </span>
-          <span className="brand-text">
-            <span className="brand-name">{profile.name}</span>
-            <span className="brand-tag">AI engineering notebook</span>
-          </span>
+          <span className="brand-name">{profile.name}</span>
         </Link>
         <HeaderSearch />
         <Link href="/daily#subscribe" className="button button-small header-cta">
