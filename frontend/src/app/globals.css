@@ -722,7 +722,7 @@ button:disabled {
    cover-first article tiles, sidebar widgets, multi-column footer.
    ===================================================================== */
 
-/* Header styles live in the "Header" section at the end of this file. */
+/* Header and search styles live in header-search.css. */
 
 /* ---------- Banners ---------- */
 .banner,
