@@ -36,12 +36,13 @@ YouTube blocks transcript requests from many cloud servers, GitHub's included. A
 To turn it on, add the `ANTHROPIC_API_KEY` secret in Settings → Secrets and variables → Actions. Run it by hand from the Actions tab (it also takes specific links), or locally:
 
 ```bash
-pip install -r lessons/requirements.txt
-python lessons/make_lesson.py --dry-run                          # what's new, writes nothing
+cd lessons                                        # dependencies are managed with uv
+uv sync
+uv run make_lesson.py --dry-run                   # what's new, writes nothing
 export ANTHROPIC_API_KEY=...
-python lessons/make_lesson.py                                    # the daily run
-python lessons/make_lesson.py --url https://github.com/owner/repo  # one item now
-python -m pytest -q lessons/tests
+uv run make_lesson.py                             # the daily run
+uv run make_lesson.py --url https://github.com/owner/repo  # one item now
+uv run pytest -q tests
 ```
 
 Lessons are plain Markdown, so edit or delete one like any other file.

@@ -1,3 +1,10 @@
 aws-lambda-powertools==3.40.0
+    # via dailydose-backend
 defusedxml==0.7.1
+    # via dailydose-backend
+jmespath==1.1.0
+    # via aws-lambda-powertools
+typing-extensions==4.16.0
+    # via aws-lambda-powertools
 tzdata==2025.2
+    # via dailydose-backend

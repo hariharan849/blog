@@ -16,7 +16,7 @@ Next.js 15 (App Router, TypeScript). The backend for the Daily Dose lives in [`/
 
 ```bash
 # terminal 1: fake backend (no AWS needed)
-cd backend && pip install -r requirements-dev.txt && python scripts/local_api.py
+cd backend && uv sync && uv run scripts/local_api.py
 
 # terminal 2
 cd frontend

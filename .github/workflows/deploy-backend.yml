@@ -25,10 +25,10 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v6
         with:
           python-version: "3.12"
-      - run: pip install -r requirements-dev.txt && python -m pytest -q
+      - run: uv sync --locked && uv run pytest -q
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
