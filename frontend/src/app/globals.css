@@ -1618,3 +1618,15 @@ button:disabled {
 .sidebar-authors .tag-row {
   margin: 0;
 }
+
+/* Articles tab: Medium cover images, same shape as the drawn covers */
+.article-cover {
+  display: block;
+}
+.article-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 8;
+  object-fit: cover;
+  background: var(--brand-dark);
+}
