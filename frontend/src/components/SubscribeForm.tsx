@@ -7,7 +7,7 @@ import { subscribe } from "@/app/daily/actions";
 export default function SubscribeForm({ compact = false }: { compact?: boolean }) {
   const [result, action, pending] = useActionState(subscribe, null);
   return (
-    <section className={`card subscribe${compact ? " subscribe-compact" : ""}`} aria-labelledby="subscribe-title">
+    <section id="subscribe" className={`card subscribe${compact ? " subscribe-compact" : ""}`} aria-labelledby="subscribe-title">
       <div className="card-body">
         <h3 id="subscribe-title" className="subscribe-title">
           Get the Daily Dose by email

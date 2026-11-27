@@ -6,6 +6,8 @@ tags: [agents, durable-execution, rag, knowledge-graphs]
 source_id: "web:https://www.theneuralmaze.com/p/one-free-course-to-learn-durable"
 source_url: "https://www.theneuralmaze.com/p/one-free-course-to-learn-durable"
 source_type: article
+source_title: "One free course to learn Durable Agents, Knowledge Graphs and AI Evals"
+source_author: "Miguel Otero Pedrido"
 ---
 
 *Lesson from the article [One free course to learn Durable Agents, Knowledge Graphs and AI Evals](https://www.theneuralmaze.com/p/one-free-course-to-learn-durable) by Miguel Otero Pedrido.*

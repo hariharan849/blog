@@ -10,6 +10,7 @@ export default function ProjectsPage() {
   return (
     <>
       <section className="hero">
+        <p className="eyebrow">Portfolio</p>
         <h1>Projects</h1>
         <p className="lead">
           Things I&apos;ve built, from multi-agent systems and production RAG to MLOps pipelines and desktop tools.
@@ -29,7 +30,7 @@ export default function ProjectsPage() {
         const list = projects.filter((p) => p.category === cat);
         if (!list.length) return null;
         return (
-          <section key={cat} className="section">
+          <section key={cat} id={cat.toLowerCase().replace(/[^a-z]+/g, "-")} className="section">
             <h2>{cat}</h2>
             <div className="grid grid-2">
               {list.map((p) => (
