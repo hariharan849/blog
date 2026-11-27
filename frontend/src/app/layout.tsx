@@ -4,6 +4,9 @@ import Footer from "@/components/Footer";
 import { profile } from "@/lib/profile";
 import { SITE_URL } from "@/lib/format";
 import "./globals.css";
+// Header and search styles live in their own file so edits at the end of globals.css
+// (where new features usually append) can't drop them in a merge.
+import "./header-search.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
