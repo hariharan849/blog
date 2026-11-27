@@ -255,8 +255,42 @@ def _ytdlp_transcript(vid: str) -> str:
 # ------------------------------------------------------------------ Articles
 
 
+SUBSTACK_PROFILE_RE = re.compile(r"^(?:https?://)?(?:www\.)?substack\.com/@([\w.-]+)/?$", re.I)
+
+
+def substack_profile_feeds(handle: str) -> list[str]:
+    """Feed URLs of the newsletters a Substack profile (substack.com/@name) writes."""
+    url = f"https://substack.com/api/v1/user/{urllib.parse.quote(handle)}/public_profile"
+    req = urllib.request.Request(url, headers={"User-Agent": feeds.USER_AGENT, "Accept": "application/json"})
+    with urllib.request.urlopen(req, timeout=20) as res:  # noqa: S310 - fixed https host
+        profile = json.load(res)
+    pubs = [
+        pu["publication"]
+        for pu in profile.get("publicationUsers") or []
+        if pu.get("role") in ("admin", "owner", "contributor") and pu.get("publication")
+    ]
+    if not pubs and profile.get("primaryPublication"):
+        pubs = [profile["primaryPublication"]]
+    out = []
+    for pub in pubs:
+        host = pub.get("custom_domain") or (f"{pub['subdomain']}.substack.com" if pub.get("subdomain") else "")
+        if host and f"https://{host}/feed" not in out:
+            out.append(f"https://{host}/feed")
+    if not out:
+        raise ValueError(f"substack.com/@{handle} doesn't write a newsletter")
+    return out
+
+
 def feed_items(kind: str, value: str) -> list[Item]:
-    feed = feeds.load(feeds.resolve_feed_url(kind, value))
+    profile = SUBSTACK_PROFILE_RE.match(value.strip()) if kind == "substack" else None
+    if profile:  # a person's profile: follow every newsletter they write
+        items = [it for feed_url in substack_profile_feeds(profile.group(1)) for it in _feed(feed_url)]
+        return sorted(items, key=lambda i: i.published)
+    return _feed(feeds.resolve_feed_url(kind, value))
+
+
+def _feed(feed_url: str) -> list[Item]:
+    feed = feeds.load(feed_url)
     items = [
         Item(
             key=f"web:{e.url}",

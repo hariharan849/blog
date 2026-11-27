@@ -162,7 +162,10 @@ def write_lesson(item: Item, text: str) -> Lesson:
 
 def slugify(s: str, limit: int = 60) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
-    return slug[:limit].rstrip("-") or "lesson"
+    if len(slug) > limit:
+        cut = slug[: limit + 1]
+        slug = cut.rsplit("-", 1)[0] if "-" in cut else slug[:limit]  # end on a whole word
+    return slug.strip("-") or "lesson"
 
 
 def yaml_str(s: str) -> str:
@@ -253,14 +256,17 @@ def now_iso() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
 
 
-def backfills(source: dict) -> bool:
+def backfills(source: dict) -> bool | int:
     """Whether items already in a source when it's added become lessons.
 
-    Defaults: a single video or repo, and a YouTube playlist (your queue), yes;
-    channels, feeds and GitHub users, no (only what's published after you add them).
+    `backfill: true` takes all of them, `false` none, and a number takes that
+    many of the most recent ones. Defaults: a single video or repo, and a
+    YouTube playlist (your queue), yes; channels, feeds and GitHub users, no
+    (only what's published after you add them).
     """
     if "backfill" in source:
-        return bool(source["backfill"])
+        value = source["backfill"]
+        return value if isinstance(value, int) and not isinstance(value, bool) else bool(value)
     url = source["url"]
     if source["type"] == "youtube":
         return "/@" not in url and "/channel/" not in url and "/c/" not in url and "/user/" not in url
@@ -282,11 +288,13 @@ def new_items(sources: list[dict], state: dict, done: set[str]) -> list[tuple[di
             continue
         if skey not in state["sources"]:
             state["sources"][skey] = {"added_at": now_iso()}
-            if not backfills(source):
-                for it in items:
+            backfill = backfills(source)
+            if backfill is not True:
+                keep = max(int(backfill), 0)  # False -> 0
+                baseline = items[: len(items) - keep] if keep else items
+                for it in baseline:
                     state["items"].setdefault(it.key, {"status": "baseline", "at": now_iso()})
-                print(f"  {skey}: new source, {len(items)} existing items marked as seen")
-                continue
+                print(f"  {skey}: new source, {len(baseline)} existing items marked as seen")
         for it in items:
             record = state["items"].get(it.key, {})
             if it.key in done or it.key in seen_keys or record.get("status") in ("baseline", "published", "skipped"):

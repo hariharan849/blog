@@ -152,6 +152,38 @@ def test_backfill_source_and_limit(feed, tmp_path, monkeypatch):
     assert run(sources, state, tmp_path) == []
 
 
+def test_backfill_number_takes_most_recent(feed, tmp_path, monkeypatch):
+    monkeypatch.setattr(c, "MIN_ARTICLE_WORDS", 1)
+    sources = [{"type": "substack", "url": "notes", "backfill": 1}]
+    state = ml.load_state(tmp_path / "s.json")
+    [path] = run(sources, state, tmp_path)
+    assert "Queues in practice" in path.read_text()
+    assert state["items"]["web:https://notes.substack.com/p/old-post"]["status"] == "baseline"
+    assert run(sources, state, tmp_path) == []
+
+
+def test_substack_profile_follows_their_newsletters(monkeypatch):
+    profile = {"publicationUsers": [
+        {"role": "admin", "publication": {"subdomain": "neural", "custom_domain": "www.neural.example"}},
+        {"role": "subscriber", "publication": {"subdomain": "other"}},
+    ]}
+
+    class Res(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+    monkeypatch.setattr(c.urllib.request, "urlopen", lambda req, timeout=20: Res(json.dumps(profile).encode()))
+    assert c.substack_profile_feeds("someone") == ["https://www.neural.example/feed"]
+    fetched = []
+    monkeypatch.setattr(c, "_feed", lambda url: fetched.append(url) or [])
+    c.feed_items("substack", "substack.com/@someone")
+    c.feed_items("substack", "https://substack.com/@someone/")
+    assert fetched == ["https://www.neural.example/feed"] * 2
+
+
 def test_same_item_in_two_sources_is_written_once(tmp_path, monkeypatch):
     monkeypatch.setattr(c, "_oembed", lambda vid: ("Talk", "Chan"))
     sources = [

@@ -5,15 +5,16 @@
 # Nothing is published twice. Items left over wait for the next run.
 #
 # type: youtube   a video, a playlist (/playlist?list=...) or a channel (/@name)
-# type: substack  a Substack name or URL
+# type: substack  a Substack name or URL, or a person's profile (substack.com/@name)
 # type: medium    a Medium @username or URL
 # type: rss       any RSS / Atom feed URL
 # type: github    a GitHub user/org (each new repo) or one repository;
 #                 these become architecture write-ups
 #
-# backfill: true/false decides whether items that already exist when you add a
-# source become lessons. Default: yes for single videos, playlists and single
-# repos; no for channels, feeds and GitHub users (only new posts from then on).
+# backfill decides whether items that already exist when you add a source
+# become lessons: true (all), false (none) or a number (that many of the most
+# recent). Default: true for single videos, playlists and single repos; false
+# for channels, feeds and GitHub users (only new posts from then on).
 
 settings:
   max_per_run: 3
@@ -23,6 +24,11 @@ settings:
 # connector is still here; add a youtube source again to turn it back on.
 
 sources:
+  # Miguel Otero Pedrido's newsletter, The Neural Maze (theneuralmaze.com)
+  - type: substack
+    url: substack.com/@migueloteropedrido
+    backfill: 1   # start with the latest existing post, then only new ones
+
   # Examples:
   # - type: substack
   #   url: newsletter-name
