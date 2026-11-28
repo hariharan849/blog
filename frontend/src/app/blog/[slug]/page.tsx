@@ -7,6 +7,7 @@ import ShareLinks from "@/components/ShareLinks";
 import TableOfContents from "@/components/TableOfContents";
 import ReadingProgress from "@/components/ReadingProgress";
 import RelatedReading from "@/components/RelatedReading";
+import Comments from "@/components/Comments";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -52,6 +53,7 @@ export default async function PostPage({ params }: Props) {
       {/* Posts are Markdown files committed to this repo by the site owner. */}
       <TableOfContents toc={post.toc} />
       <div className="prose" dangerouslySetInnerHTML={{ __html: post.html }} />
+      <Comments />
       <RelatedReading items={getRelated("post", post.slug)} />
       <hr />
       <ShareLinks title={post.title} url={`${SITE_URL}/blog/${post.slug}`} />

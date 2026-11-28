@@ -105,3 +105,11 @@
   font-size: 0.85rem;
   color: var(--muted);
 }
+
+.comments {
+  margin: 2rem 0;
+}
+.comments h2 {
+  font-size: 1.25rem;
+  margin: 0 0 0.9rem;
+}
