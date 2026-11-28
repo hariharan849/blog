@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getAdmin } from "@/lib/auth";
 import { feedApi, feedConfigured, FeedApiError, type Source } from "@/lib/feed";
 import { lessonRunsConfigured, MAX_LINKS, recentLessonRuns, type LessonRun } from "@/lib/lessonRuns";
+import AdminTabs from "./AdminTabs";
 import { AddSourceForm, ReadingListForm, RunNowButton, SignInButton, SignOutButton, SourceRow } from "./AdminClient";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false } };
@@ -46,6 +47,7 @@ export default async function AdminPage({ searchParams }: Props) {
 
   return (
     <div className="narrow admin">
+      <AdminTabs current="/admin" />
       <section className="hero admin-head">
         <div>
           <p className="eyebrow">Signed in as @{admin.login}</p>

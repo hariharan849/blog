@@ -33,6 +33,12 @@ export default function Footer() {
               <Link href="/daily/lessons">All lessons</Link>
             </li>
             <li>
+              <Link href="/roadmap">Roadmap</Link>
+            </li>
+            <li>
+              <Link href="/progress">Weekly progress</Link>
+            </li>
+            <li>
               <Link href="/about">About</Link>
             </li>
           </ul>

@@ -1,5 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- ."
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- .",
+  "crons": [
+    {
+      "path": "/api/cron/weekly-draft",
+      "schedule": "30 13 * * 0"
+    }
+  ]
 }
