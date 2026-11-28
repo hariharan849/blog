@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { profile } from "@/lib/profile";
-import { projectCategories, projects } from "@/lib/projects";
+import { projectCategories, projectSlug, projects } from "@/lib/projects";
 import { getLessons, getPosts } from "@/lib/posts";
 import { formatDate } from "@/lib/format";
 import HeroArt from "@/components/HeroArt";
@@ -127,9 +127,9 @@ export default async function HomePage() {
                 <ul className="entry-list">
                   {list.slice(0, 3).map((p) => (
                     <li key={p.name}>
-                      <a href={p.repo} target="_blank" rel="noopener noreferrer" className="entry-title">
+                      <Link href={`/projects/${projectSlug(p)}`} className="entry-title">
                         {p.name}
-                      </a>
+                      </Link>
                       <p className="entry-meta">{p.tags.slice(0, 4).join(" · ")}</p>
                       <p className="entry-excerpt">{p.summary}</p>
                     </li>

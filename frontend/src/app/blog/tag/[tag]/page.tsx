@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPosts, getTags } from "@/lib/posts";
 import PostCard from "@/components/PostCard";
+import Pagination from "@/components/Pagination";
+import { paginate } from "@/lib/paginate";
 
-type Props = { params: Promise<{ tag: string }> };
+const PER_PAGE = 10;
+
+type Props = { params: Promise<{ tag: string }>; searchParams: Promise<{ page?: string }> };
 
 export const dynamicParams = false;
 
@@ -15,10 +19,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `Posts tagged #${(await params).tag}` };
 }
 
-export default async function TagPage({ params }: Props) {
+export default async function TagPage({ params, searchParams }: Props) {
   const { tag } = await params;
-  const posts = getPosts().filter((p) => p.tags.includes(tag));
-  if (!posts.length) notFound();
+  const tagged = getPosts().filter((p) => p.tags.includes(tag));
+  if (!tagged.length) notFound();
+  const { items: posts, pager } = paginate(tagged, (await searchParams).page, PER_PAGE);
   return (
     <>
       <section className="hero">
@@ -30,6 +35,7 @@ export default async function TagPage({ params }: Props) {
           <PostCard key={p.slug} post={p} />
         ))}
       </div>
+      <Pagination base={`/blog/tag/${tag}`} noun="posts" {...pager} />
     </>
   );
 }

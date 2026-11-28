@@ -138,6 +138,13 @@ const posts = collection("posts");
  */
 const lessons = collection("lessons");
 
+/**
+ * Optional project write-ups in /content/projects/<project-slug>.md, shown on
+ * /projects/<slug> under the project summary. Same front matter as posts.
+ */
+const projectWriteups = collection("projects");
+export const getProjectWriteup = projectWriteups.get;
+
 export const getLessons = lessons.list;
 export const getFullLessons = lessons.full;
 export const getFullPosts = posts.full;

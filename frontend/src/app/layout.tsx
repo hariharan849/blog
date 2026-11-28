@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { profile } from "@/lib/profile";
@@ -9,6 +10,7 @@ import "./globals.css";
 import "./header-search.css";
 import "./code-highlight.css";
 import "./article-extras.css";
+import "./pagination.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -27,6 +29,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Header />
         <main className="container main">{children}</main>
         <Footer />
+        {/* Cookie-free page-view counts; turn on under Analytics in the Vercel project. */}
+        <Analytics />
       </body>
     </html>
   );

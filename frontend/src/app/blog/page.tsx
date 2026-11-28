@@ -2,11 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getPosts, getTags } from "@/lib/posts";
 import PostCard from "@/components/PostCard";
+import Pagination from "@/components/Pagination";
+import { paginate } from "@/lib/paginate";
+
+const PER_PAGE = 10;
 
 export const metadata: Metadata = { title: "Blog" };
 
-export default function BlogPage() {
-  const posts = getPosts();
+type Props = { searchParams: Promise<{ page?: string }> };
+
+export default async function BlogPage({ searchParams }: Props) {
+  const { items: posts, pager } = paginate(getPosts(), (await searchParams).page, PER_PAGE);
   const tags = getTags();
   return (
     <>
@@ -23,7 +29,7 @@ export default function BlogPage() {
           </p>
         )}
       </section>
-      {posts.length ? (
+      {pager.total ? (
         <div className="stack">
           {posts.map((p) => (
             <PostCard key={p.slug} post={p} />
@@ -32,6 +38,7 @@ export default function BlogPage() {
       ) : (
         <p className="muted empty">No posts yet.</p>
       )}
+      <Pagination base="/blog" noun="posts" {...pager} />
     </>
   );
 }

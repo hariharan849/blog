@@ -1,4 +1,5 @@
-import type { Project } from "@/lib/projects";
+import Link from "next/link";
+import { projectSlug, type Project } from "@/lib/projects";
 
 export default function ProjectCard({ project }: { project: Project }) {
   return (
@@ -6,9 +7,7 @@ export default function ProjectCard({ project }: { project: Project }) {
       <div className="card-body tile-body">
         <p className="kicker">{project.category}</p>
         <h3 className="tile-title">
-          <a href={project.repo} target="_blank" rel="noopener noreferrer">
-            {project.name}
-          </a>
+          <Link href={`/projects/${projectSlug(project)}`}>{project.name}</Link>
         </h3>
         <p className="excerpt">{project.summary}</p>
         <p className="tag-row">
@@ -18,9 +17,9 @@ export default function ProjectCard({ project }: { project: Project }) {
             </span>
           ))}
         </p>
-        <a href={project.repo} target="_blank" rel="noopener noreferrer" className="read-more">
-          View on GitHub <span aria-hidden="true">→</span>
-        </a>
+        <Link href={`/projects/${projectSlug(project)}`} className="read-more">
+          Read more <span aria-hidden="true">→</span>
+        </Link>
       </div>
     </article>
   );
