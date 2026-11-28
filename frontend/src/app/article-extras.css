@@ -1,0 +1,107 @@
+/* Table of contents, reading progress bar and related reading on post and lesson pages. */
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 100;
+  pointer-events: none;
+}
+.reading-progress-bar {
+  height: 100%;
+  background: var(--brand-2);
+  transform-origin: left center;
+  transition: transform 80ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reading-progress-bar {
+    transition: none;
+  }
+}
+
+.toc {
+  margin: 0 0 1.75rem;
+  padding: 0.9rem 1.1rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.toc summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text);
+}
+.toc ol {
+  margin: 0.6rem 0 0;
+  padding-left: 1.2rem;
+}
+.toc li {
+  margin: 0.25rem 0;
+}
+.toc li.toc-sub {
+  margin-left: 1rem;
+  list-style: circle;
+  font-size: 0.95em;
+}
+.toc a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.toc a:hover {
+  text-decoration: underline;
+}
+.prose h2[id],
+.prose h3[id] {
+  scroll-margin-top: 5rem;
+}
+
+.related {
+  margin: 2rem 0 1.5rem;
+}
+.related h2 {
+  font-size: 1.25rem;
+  margin: 0 0 0.9rem;
+}
+.related ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+}
+.related-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  height: 100%;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  text-decoration: none;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.related-card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+.related-kind {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.related-title {
+  font-weight: 700;
+  line-height: 1.35;
+}
+.related-meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}

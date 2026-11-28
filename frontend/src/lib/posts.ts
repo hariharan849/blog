@@ -45,7 +45,32 @@ export type PostMeta = {
   readingMinutes: number;
 };
 
-export type Post = PostMeta & { html: string };
+export type TocEntry = { id: string; text: string; depth: 2 | 3 };
+
+export type Post = PostMeta & { html: string; toc: TocEntry[] };
+
+const decode = (s: string) =>
+  s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+
+/** Give h2/h3 headings stable ids (for links and the table of contents) and list them. */
+function withHeadingIds(html: string): { html: string; toc: TocEntry[] } {
+  const toc: TocEntry[] = [];
+  const used = new Map<string, number>();
+  const out = html.replace(/<h([23])>([\s\S]*?)<\/h\1>/g, (_m, level: string, inner: string) => {
+    const text = decode(inner.replace(/<[^>]+>/g, "")).trim();
+    const base =
+      text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "section";
+    const n = used.get(base) ?? 0;
+    used.set(base, n + 1);
+    const id = n ? `${base}-${n}` : base;
+    toc.push({ id, text, depth: Number(level) as 2 | 3 });
+    return `<h${level} id="${id}">${inner}</h${level}>`;
+  });
+  return { html: out, toc };
+}
 
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -79,7 +104,7 @@ function read(dir: string, file: string): Post {
     readingMinutes: Math.max(1, Math.round(words / 220)),
     ...(data.youtube_id ? { youtubeId: String(data.youtube_id) } : {}),
     ...sourceInfo(data, content),
-    html: marked.parse(content, { async: false }) as string,
+    ...withHeadingIds(marked.parse(content, { async: false }) as string),
   };
 }
 
@@ -97,7 +122,7 @@ function collection(name: string) {
       .sort((a, b) => b.date.localeCompare(a.date) || b.slug.localeCompare(a.slug));
   };
   return {
-    list: (): PostMeta[] => all().map(({ html: _html, ...meta }) => meta),
+    list: (): PostMeta[] => all().map(({ html: _html, toc: _toc, ...meta }) => meta),
     /** Every entry with its rendered HTML, for site search. */
     full: (): Post[] => all(),
     get: (slug: string): Post | undefined => (SLUG_RE.test(slug) ? all().find((p) => p.slug === slug) : undefined),
@@ -148,4 +173,31 @@ export function getTags(): { tag: string; count: number }[] {
   const counts = new Map<string, number>();
   for (const p of getPosts()) for (const t of p.tags) counts.set(t, (counts.get(t) ?? 0) + 1);
   return [...counts].map(([tag, count]) => ({ tag, count })).sort((a, b) => a.tag.localeCompare(b.tag));
+}
+
+export type RelatedItem = PostMeta & { kind: "post" | "lesson"; href: string };
+
+/**
+ * Up to `limit` posts and lessons to read next: most shared tags first, then
+ * the same source author, then newest. Falls back to the latest entries when
+ * nothing overlaps, so the section is never empty once there is other content.
+ */
+export function getRelated(kind: "post" | "lesson", slug: string, limit = 3): RelatedItem[] {
+  const all: RelatedItem[] = [
+    ...getPosts().map((p) => ({ ...p, kind: "post" as const, href: `/blog/${p.slug}` })),
+    ...getLessons().map((l) => ({ ...l, kind: "lesson" as const, href: `/daily/lessons/${l.slug}` })),
+  ];
+  const self = all.find((i) => i.kind === kind && i.slug === slug);
+  if (!self) return [];
+  const tags = new Set(self.tags);
+  const score = (i: RelatedItem) =>
+    i.tags.filter((t) => tags.has(t)).length * 2 +
+    (self.sourceAuthor && i.sourceAuthor === self.sourceAuthor ? 1 : 0) +
+    (i.kind === kind ? 0.5 : 0);
+  return all
+    .filter((i) => i !== self)
+    .map((i) => ({ i, s: score(i) }))
+    .sort((a, b) => b.s - a.s || b.i.date.localeCompare(a.i.date))
+    .slice(0, limit)
+    .map(({ i }) => i);
 }

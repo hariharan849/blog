@@ -8,6 +8,7 @@ import "./globals.css";
 // (where new features usually append) can't drop them in a merge.
 import "./header-search.css";
 import "./code-highlight.css";
+import "./article-extras.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
