@@ -129,4 +129,14 @@ export const projects: Project[] = [
   },
 ];
 
+/** URL slug for a project's page, e.g. "Blog2Podcast" -> "blog2podcast". */
+export const projectSlug = (p: Pick<Project, "name">) =>
+  p.name
+    .toLowerCase()
+    .replace(/\(.*?\)/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+export const getProject = (slug: string) => projects.find((p) => projectSlug(p) === slug);
+
 export const projectCategories = ["GenAI & Agents", "MLOps", "Deep Learning", "Tools"] as const;

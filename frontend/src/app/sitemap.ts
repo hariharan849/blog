@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getLessons, getPosts, getTags } from "@/lib/posts";
 import { SITE_URL } from "@/lib/format";
+import { projectSlug, projects } from "@/lib/projects";
 
 /** /sitemap.xml: every public page, rebuilt on each deploy (new lessons are committed, which redeploys). */
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -22,6 +23,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/articles", undefined, 0.6),
     page("/daily", lessons[0]?.date, 0.7),
     page("/daily/lessons", lessons[0]?.date, 0.7),
+    ...projects.map((p) => page(`/projects/${projectSlug(p)}`, undefined, p.featured ? 0.7 : 0.5)),
     ...posts.map((p) => page(`/blog/${p.slug}`, p.date, 0.6)),
     ...getTags().map(({ tag }) => page(`/blog/tag/${tag}`, undefined, 0.3)),
     ...lessons.map((l) => page(`/daily/lessons/${l.slug}`, l.date, 0.6)),
