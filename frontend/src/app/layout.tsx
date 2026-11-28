@@ -10,6 +10,7 @@ import "./globals.css";
 import "./header-search.css";
 import "./code-highlight.css";
 import "./article-extras.css";
+import "./pagination.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),

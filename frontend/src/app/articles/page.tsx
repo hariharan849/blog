@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import { getArticles, MEDIUM_PROFILE_URL } from "@/lib/medium";
 import ArticleCard from "@/components/ArticleCard";
+import Pagination from "@/components/Pagination";
+import { paginate } from "@/lib/paginate";
+
+const PER_PAGE = 9;
+
+type Props = { searchParams: Promise<{ page?: string }> };
 
 export const metadata: Metadata = {
   title: "Articles",
@@ -9,8 +15,9 @@ export const metadata: Metadata = {
 
 export const revalidate = 3600;
 
-export default async function ArticlesPage() {
-  const articles = await getArticles();
+export default async function ArticlesPage({ searchParams }: Props) {
+  const all = await getArticles();
+  const { items: articles, pager } = paginate(all, (await searchParams).page, PER_PAGE);
   return (
     <>
       <section className="hero">
@@ -24,11 +31,14 @@ export default async function ArticlesPage() {
         </p>
       </section>
       {articles.length ? (
-        <div className="grid grid-3">
-          {articles.map((a) => (
-            <ArticleCard key={a.id} article={a} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-3">
+            {articles.map((a) => (
+              <ArticleCard key={a.id} article={a} />
+            ))}
+          </div>
+          <Pagination base="/articles" noun="articles" {...pager} />
+        </>
       ) : (
         <p className="muted empty">
           Articles couldn&apos;t be loaded right now.{" "}

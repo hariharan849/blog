@@ -4,14 +4,20 @@ import { authorSlug, getLessonAuthors, getLessons, type PostMeta } from "@/lib/p
 import { formatDate } from "@/lib/format";
 import LessonCard from "@/components/LessonCard";
 import SubscribeForm from "@/components/SubscribeForm";
+import Pagination from "@/components/Pagination";
+import { paginate } from "@/lib/paginate";
+
+/** Cards on the Latest view; the compact A–Z and by-author indexes fit more per page. */
+const PER_PAGE = { latest: 10, title: 30, author: 30 } as const;
 
 export const metadata: Metadata = {
   title: "Daily lessons",
-  description: "One engineering lesson a day, written from a talk or article worth knowing. Browse by title or by author.",
+  description:
+    "One engineering lesson a day, written from a talk or article worth knowing. Browse by title or by author.",
 };
 
 type View = "latest" | "title" | "author";
-type Props = { searchParams: Promise<{ view?: string; author?: string }> };
+type Props = { searchParams: Promise<{ view?: string; author?: string; page?: string }> };
 
 const VIEWS: { id: View; label: string }[] = [
   { id: "latest", label: "Latest" },
@@ -55,8 +61,20 @@ export default async function LessonsPage({ searchParams }: Props) {
   const all = getLessons();
   const authors = getLessonAuthors();
   const author = authors.find((a) => a.slug === params.author);
-  const lessons = author ? all.filter((l) => authorSlug(authorOf(l)) === author.slug) : all;
+  const filtered = author ? all.filter((l) => authorSlug(authorOf(l)) === author.slug) : all;
   const view: View = VIEWS.some((v) => v.id === params.view) ? (params.view as View) : "latest";
+  const ordered =
+    view === "title"
+      ? [...filtered].sort((a, b) => a.title.localeCompare(b.title))
+      : view === "author"
+        ? [...filtered].sort((a, b) => authorOf(a).localeCompare(authorOf(b)) || b.date.localeCompare(a.date))
+        : filtered;
+  const { items: lessons, pager } = paginate(ordered, params.page, PER_PAGE[view]);
+  /** Total lessons by an author, not just the ones on this page. */
+  const lessonCount = (name: string, onPage: number) => {
+    const n = authors.find((a) => a.author === name)?.count ?? onPage;
+    return `${n} lesson${n === 1 ? "" : "s"}`;
+  };
   const href = (v: View, a = author?.slug) => {
     const q = new URLSearchParams();
     if (v !== "latest") q.set("view", v);
@@ -100,7 +118,11 @@ export default async function LessonsPage({ searchParams }: Props) {
                 All <span className="chip-count">{all.length}</span>
               </Link>
               {authors.map((a) => (
-                <Link key={a.slug} href={href(view, a.slug)} className={`chip${author?.slug === a.slug ? " chip-active" : ""}`}>
+                <Link
+                  key={a.slug}
+                  href={href(view, a.slug)}
+                  className={`chip${author?.slug === a.slug ? " chip-active" : ""}`}
+                >
                   {a.author} <span className="chip-count">{a.count}</span>
                 </Link>
               ))}
@@ -110,10 +132,7 @@ export default async function LessonsPage({ searchParams }: Props) {
           {!lessons.length ? (
             <p className="muted empty">No lessons yet. The first one arrives with the next daily run.</p>
           ) : view === "title" ? (
-            group(
-              [...lessons].sort((a, b) => a.title.localeCompare(b.title)),
-              (l) => firstLetter(l.title),
-            ).map(([letter, list]) => (
+            group(lessons, (l) => firstLetter(l.title)).map(([letter, list]) => (
               <section key={letter} className="index-group">
                 <h2 className="index-letter">{letter}</h2>
                 <ul className="entry-list card index-card">
@@ -124,16 +143,11 @@ export default async function LessonsPage({ searchParams }: Props) {
               </section>
             ))
           ) : view === "author" ? (
-            group(
-              [...lessons].sort((a, b) => authorOf(a).localeCompare(authorOf(b)) || b.date.localeCompare(a.date)),
-              authorOf,
-            ).map(([name, list]) => (
+            group(lessons, authorOf).map(([name, list]) => (
               <section key={name} className="index-group">
                 <div className="section-head">
                   <h2 className="section-title">{name}</h2>
-                  <span className="muted small">
-                    {list.length} lesson{list.length === 1 ? "" : "s"}
-                  </span>
+                  <span className="muted small">{lessonCount(name, list.length)}</span>
                 </div>
                 <ul className="entry-list card index-card">
                   {list.map((l) => (
@@ -149,6 +163,7 @@ export default async function LessonsPage({ searchParams }: Props) {
               ))}
             </div>
           )}
+          <Pagination base={href(view)} noun="lessons" {...pager} />
         </div>
 
         <aside className="sidebar">

@@ -1,0 +1,75 @@
+/* Numbered pagination under list pages (blog, tags, lessons, articles, search). */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin: 2rem 0 0.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.pager-summary {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.pager-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.pager-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 2.4rem;
+  height: 2.4rem;
+  padding: 0 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+a.pager-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+a.pager-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.pager-current {
+  background: var(--button);
+  border-color: var(--button);
+  color: #fff;
+}
+.pager-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.pager-gap {
+  padding: 0 0.25rem;
+  color: var(--muted);
+}
+@media (max-width: 560px) {
+  .pager {
+    justify-content: center;
+  }
+  .pager-summary {
+    width: 100%;
+    text-align: center;
+  }
+  .pager-step .pager-step-text {
+    display: none;
+  }
+}
