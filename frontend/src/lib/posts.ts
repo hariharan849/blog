@@ -145,6 +145,10 @@ const lessons = collection("lessons");
 const projectWriteups = collection("projects");
 export const getProjectWriteup = projectWriteups.get;
 
+/** Weekly progress updates (/progress), published from /admin/progress into /content/progress. */
+const progress = collection("progress");
+export const getProgressUpdates = progress.full;
+
 export const getLessons = lessons.list;
 export const getFullLessons = lessons.full;
 export const getFullPosts = posts.full;

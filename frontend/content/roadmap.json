@@ -1,0 +1,31 @@
+{
+  "goals": [
+    {
+      "id": "daily-dose-pipeline",
+      "title": "Run the Daily Dose lesson pipeline every morning",
+      "description": "Turn new posts from the newsletters and repos I follow into short engineering lessons at 6 AM, with no duplicates.",
+      "quarter": "2026 Q4",
+      "status": "in-progress",
+      "progress": 70,
+      "links": [{ "label": "Daily Dose", "href": "/daily" }]
+    },
+    {
+      "id": "email-backend",
+      "title": "Deploy the email subscription backend on AWS",
+      "description": "Ship the serverless backend so readers can get each lesson by email.",
+      "quarter": "2026 Q4",
+      "status": "planned",
+      "progress": 0,
+      "links": []
+    },
+    {
+      "id": "portfolio-site",
+      "title": "Launch this portfolio and learning hub",
+      "description": "Projects, blog, Medium articles and the Daily Dose in one place.",
+      "quarter": "2026 Q4",
+      "status": "done",
+      "progress": 100,
+      "links": [{ "label": "Projects", "href": "/projects" }]
+    }
+  ]
+}

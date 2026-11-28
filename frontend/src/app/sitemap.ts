@@ -23,6 +23,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/articles", undefined, 0.6),
     page("/daily", lessons[0]?.date, 0.7),
     page("/daily/lessons", lessons[0]?.date, 0.7),
+    page("/roadmap", undefined, 0.6),
+    page("/progress", undefined, 0.6),
     ...projects.map((p) => page(`/projects/${projectSlug(p)}`, undefined, p.featured ? 0.7 : 0.5)),
     ...posts.map((p) => page(`/blog/${p.slug}`, p.date, 0.6)),
     ...getTags().map(({ tag }) => page(`/blog/tag/${tag}`, undefined, 0.3)),

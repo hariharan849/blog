@@ -1,0 +1,303 @@
+/* Roadmap page, weekly progress page and the admin editors for them. */
+.roadmap-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  margin: 1rem 0 0;
+  color: var(--muted);
+}
+.roadmap-stats strong {
+  color: var(--text);
+  font-size: 1.25rem;
+  margin-right: 0.2rem;
+}
+.roadmap-quarter h2 {
+  font-size: 1.2rem;
+}
+.roadmap-now {
+  color: var(--accent);
+}
+.goal-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+}
+.goal-head {
+  margin-bottom: 0.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.goal-title {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+.goal-status {
+  flex: none;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  background: var(--chip-bg);
+  color: var(--chip-text);
+}
+.goal-status-done {
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--success);
+}
+.goal-status-paused,
+.goal-status-planned {
+  background: color-mix(in srgb, var(--muted) 15%, transparent);
+  color: var(--muted);
+}
+.goal-done .goal-title {
+  color: var(--muted);
+}
+.goal-bar {
+  height: 8px;
+  margin: 0.9rem 0 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted) 18%, transparent);
+  overflow: hidden;
+}
+.goal-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--brand-2);
+}
+.goal-done .goal-bar span {
+  background: var(--success);
+}
+.goal-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  margin: 0;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.goal-meta a {
+  font-weight: 600;
+}
+
+/* Admin editors */
+.admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 1.25rem;
+}
+.admin-tabs a {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+  text-decoration: none;
+  background: var(--surface);
+}
+.admin-tabs a[aria-current="page"] {
+  background: var(--button);
+  border-color: var(--button);
+  color: #fff;
+}
+.editor-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+}
+.editor-item {
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.editor-grid {
+  display: grid;
+  gap: 0.6rem 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+}
+.editor-grid label,
+.editor-item > label {
+  display: grid;
+  gap: 0.25rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.editor-grid .span-all,
+.editor-item > label {
+  grid-column: 1 / -1;
+}
+.editor-item input,
+.editor-item select,
+.editor-item textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+.editor-bar {
+  position: sticky;
+  bottom: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-hover);
+}
+.editor-bar .grow {
+  flex: 1;
+}
+
+/* Todos */
+.todo-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 1.25rem 0 0.75rem;
+}
+.todo-toolbar .view-tabs {
+  margin: 0;
+}
+.todo-toolbar .view-tabs button {
+  padding: 0.6rem 0.9rem;
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--muted);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  cursor: pointer;
+}
+.todo-toolbar .view-tabs button:hover,
+.todo-toolbar .view-tabs button.active {
+  color: var(--accent);
+}
+.todo-toolbar .view-tabs button.active {
+  border-bottom-color: var(--accent);
+}
+.todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.todo {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+.todo:last-child {
+  border-bottom: none;
+}
+.todo > input[type="checkbox"] {
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  margin-top: 0.2rem;
+  accent-color: var(--button);
+}
+.todo-body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+.todo-text {
+  overflow-wrap: anywhere;
+}
+.todo-done .todo-text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.todo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.todo-today {
+  color: var(--accent);
+  font-weight: 700;
+}
+.todo-overdue {
+  color: var(--danger);
+  font-weight: 700;
+}
+.todo-actions {
+  flex: none;
+  display: flex;
+  gap: 0.15rem;
+}
+.icon-button {
+  width: 1.9rem;
+  height: 1.9rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+}
+.icon-button:hover:not(:disabled) {
+  border-color: var(--border);
+  color: var(--text);
+}
+.icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.todo-edit {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+.todo-edit input[name="text"] {
+  flex: 1 1 220px;
+}
+
+/* Weekly progress */
+.progress-list {
+  display: grid;
+  gap: 1.25rem;
+}
+.progress-entry {
+  scroll-margin-top: 5rem;
+}
+.progress-entry .prose h2 {
+  font-size: 1.05rem;
+  margin-top: 1.25rem;
+}
+.editor-item > .meta {
+  margin-top: 0;
+}
+.editor-item > label + label {
+  margin-top: 0.75rem;
+}
