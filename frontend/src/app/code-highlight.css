@@ -1,0 +1,73 @@
+/*
+ * Syntax colours for code blocks in posts and lessons (highlight.js classes,
+ * added at build time in src/lib/posts.ts). Code blocks keep the dark navy
+ * background in both light and dark mode, so one palette serves both.
+ */
+.prose pre code.hljs {
+  display: block;
+  background: transparent;
+  color: #e6edf1;
+  padding: 0;
+  font-size: 0.88em;
+  line-height: 1.55;
+}
+.hljs-comment,
+.hljs-quote {
+  color: #8b9bb8;
+  font-style: italic;
+}
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-doctag,
+.hljs-meta .hljs-keyword {
+  color: #93c5fd;
+}
+.hljs-string,
+.hljs-regexp,
+.hljs-addition,
+.hljs-meta .hljs-string {
+  color: #a5e8b8;
+}
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-variable.constant_ {
+  color: #fbbf77;
+}
+.hljs-title,
+.hljs-title.function_,
+.hljs-section {
+  color: #c4b5fd;
+}
+.hljs-title.class_,
+.hljs-type,
+.hljs-built_in {
+  color: #7dd3fc;
+}
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-params {
+  color: #e6edf1;
+}
+.hljs-name,
+.hljs-tag,
+.hljs-selector-class,
+.hljs-selector-id {
+  color: #7dd3fc;
+}
+.hljs-meta {
+  color: #fca5a5;
+}
+.hljs-deletion {
+  color: #fca5a5;
+}
+.hljs-emphasis {
+  font-style: italic;
+}
+.hljs-strong {
+  font-weight: 700;
+}

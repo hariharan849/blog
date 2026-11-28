@@ -2,7 +2,21 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import matter from "gray-matter";
-import { marked } from "marked";
+import { Marked } from "marked";
+import { markedHighlight } from "marked-highlight";
+import hljs from "highlight.js/lib/common";
+
+/** Markdown renderer with syntax highlighting for fenced code blocks (done at build time, no client JS). */
+const marked = new Marked(
+  markedHighlight({
+    emptyLangClass: "hljs",
+    langPrefix: "hljs language-",
+    highlight(code, lang) {
+      const language = hljs.getLanguage(lang) ? lang : "plaintext";
+      return hljs.highlight(code, { language }).value;
+    },
+  }),
+);
 
 /**
  * Blog posts are Markdown files in /content/posts with front matter:

@@ -7,20 +7,16 @@ import "./globals.css";
 // Header and search styles live in their own file so edits at the end of globals.css
 // (where new features usually append) can't drop them in a merge.
 import "./header-search.css";
+import "./code-highlight.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: { default: `${profile.name} · ${profile.role}`, template: `%s · ${profile.name}` },
   description: profile.intro,
   alternates: { types: { "application/rss+xml": "/rss.xml" } },
-  ...(profile.avatar && {
-    openGraph: {
-      type: "website",
-      siteName: profile.name,
-      images: [{ url: profile.avatar, width: 480, height: 480, alt: profile.name }],
-    },
-    twitter: { card: "summary", images: [profile.avatar] },
-  }),
+  // Link-preview images come from the opengraph-image.tsx files (site-wide, per post, per lesson).
+  openGraph: { type: "website", siteName: profile.name },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

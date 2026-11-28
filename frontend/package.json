@@ -11,7 +11,9 @@
   },
   "dependencies": {
     "gray-matter": "4.0.3",
+    "highlight.js": "11.11.1",
     "marked": "15.0.12",
+    "marked-highlight": "2.2.1",
     "next": "15.5.29",
     "next-auth": "4.24.15",
     "react": "19.1.10",
