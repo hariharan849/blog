@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPost, getPosts } from "@/lib/posts";
+import { getPost, getPosts, getRelated } from "@/lib/posts";
 import { formatDate, SITE_URL } from "@/lib/format";
 import ShareLinks from "@/components/ShareLinks";
+import TableOfContents from "@/components/TableOfContents";
+import ReadingProgress from "@/components/ReadingProgress";
+import RelatedReading from "@/components/RelatedReading";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -29,6 +32,7 @@ export default async function PostPage({ params }: Props) {
 
   return (
     <article className="narrow">
+      <ReadingProgress />
       <header className="hero">
         <p className="meta">
           <time dateTime={post.date}>{formatDate(post.date, { month: "long" })}</time> · {post.readingMinutes} min read
@@ -46,7 +50,9 @@ export default async function PostPage({ params }: Props) {
         )}
       </header>
       {/* Posts are Markdown files committed to this repo by the site owner. */}
+      <TableOfContents toc={post.toc} />
       <div className="prose" dangerouslySetInnerHTML={{ __html: post.html }} />
+      <RelatedReading items={getRelated("post", post.slug)} />
       <hr />
       <ShareLinks title={post.title} url={`${SITE_URL}/blog/${post.slug}`} />
       <Link href="/blog" className="button button-secondary">
